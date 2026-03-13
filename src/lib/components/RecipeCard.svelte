@@ -104,10 +104,10 @@
 		{#if recipe.pantry_based}
 			<div class="absolute top-0 left-0 z-10">
 				<div
-					class="absolute bg-emerald-600 text-white text-[10px] font-bold text-center leading-tight py-1"
-					style="width: 140px; top: 22px; left: -36px; transform: rotate(-45deg);"
+					class="absolute bg-emerald-600 text-white text-sm font-bold text-center leading-tight py-1.5"
+					style="width: 200px; top: 30px; left: -50px; transform: rotate(-45deg);"
 				>
-					🏠 Aus dem Vorrat
+					Aus dem Vorrat
 				</div>
 			</div>
 		{/if}
