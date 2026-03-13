@@ -173,7 +173,7 @@
 	class="rounded-2xl shadow-sm overflow-hidden border transition-all duration-200 {approved && approvable
 		? 'border-green-200 opacity-60'
 		: recipe.pantry_based
-			? 'bg-emerald-50 border-green-200 hover:shadow-md'
+			? 'bg-white border-orange-200 hover:shadow-md'
 			: 'bg-white border-warm-100 hover:shadow-md'}"
 >
 	<a href="/rezepte/{recipe.id}" class="block">
