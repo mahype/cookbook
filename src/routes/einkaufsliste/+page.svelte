@@ -11,11 +11,11 @@
 	let deleting = $state<number | null>(null);
 
 	const storeEmojis: Record<string, string> = {
-		Discounter: '🏪',
-		Supermarkt: '🛒',
-		Theke: '🥩',
-		'Asia-Laden': '🌏',
-		Gemüsehändler: '🥬'
+		Discounter: '▸',
+		Supermarkt: '▸',
+		Theke: '▸',
+		'Asia-Laden': '▸',
+		Gemüsehändler: '▸'
 	};
 
 	const storeColors: Record<string, string> = {
@@ -95,11 +95,11 @@
 </script>
 
 <div class="max-w-lg mx-auto px-4 pt-6 pb-4">
-	<h1 class="text-2xl font-bold text-warm-900 mb-4">🛒 Einkaufsliste</h1>
+	<h1 class="text-2xl font-bold text-warm-900 mb-4">Einkaufsliste</h1>
 
 	{#if items.length === 0}
 		<div class="bg-white rounded-2xl p-8 shadow-sm border border-warm-100 text-center">
-			<p class="text-4xl mb-3">🛒</p>
+			<p class="text-4xl mb-3 text-warm-300"><svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" /></svg></p>
 			<p class="text-warm-500 text-base">Deine Einkaufsliste ist leer.</p>
 			<p class="text-warm-400 text-sm mt-1">Füge Zutaten aus deinen Rezepten hinzu!</p>
 		</div>
@@ -116,7 +116,7 @@
 		{#each groupedUnchecked() as [store, storeItems] (store)}
 			<div class="mb-4">
 				<h2 class="text-sm font-semibold text-warm-700 mb-2">
-					{storeEmojis[store] || '📦'} {store}
+					{storeEmojis[store] || '▸'} {store}
 				</h2>
 				<div class="bg-white rounded-2xl shadow-sm border border-warm-100 divide-y divide-warm-100">
 					{#each storeItems as item (item.id)}

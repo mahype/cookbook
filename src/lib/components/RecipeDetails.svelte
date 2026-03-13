@@ -150,7 +150,7 @@
 	<!-- Ingredients: To Buy -->
 	<div>
 		{#if toBuy.length > 0}
-			<h4 class="text-sm font-semibold text-warm-800 mb-3">🛒 Das brauchst du</h4>
+			<h4 class="text-sm font-semibold text-warm-800 mb-3">Das brauchst du</h4>
 			<ul class="space-y-2">
 				{#each toBuy as ingredient (ingredient.name)}
 					<li class="flex items-center justify-between gap-3 rounded-xl bg-warm-50 px-3 py-2.5">
@@ -215,7 +215,7 @@
 					disabled={addingAllToCart}
 					class="w-full min-h-[44px] py-2.5 rounded-xl bg-spice-500 text-white text-sm font-semibold hover:bg-spice-600 transition-colors disabled:opacity-50"
 				>
-					{addingAllToCart ? 'Wird hinzugefügt...' : '🛒 Alle Zutaten zur Einkaufsliste'}
+					{addingAllToCart ? 'Wird hinzugefügt...' : 'Alle zur Einkaufsliste'}
 				</button>
 			</div>
 		{:else}
@@ -225,7 +225,7 @@
 		<!-- Ingredients: At Home -->
 		{#if atHome.length > 0}
 			<div class="mt-3 pt-3 border-t border-warm-200">
-				<h4 class="text-sm font-semibold text-warm-500 mb-2">🏠 Hast du im Vorrat</h4>
+				<h4 class="text-sm font-semibold text-warm-500 mb-2">Hast du im Vorrat</h4>
 				<ul class="space-y-2">
 					{#each atHome as ingredient (ingredient.name)}
 						<li class="flex items-center justify-between gap-3 rounded-xl bg-warm-50 px-3 py-2.5 opacity-60">

@@ -42,7 +42,7 @@
 </script>
 
 <div class="max-w-lg mx-auto px-4 pt-6">
-	<h1 class="text-2xl font-bold text-warm-900 mb-2">📦 Vorrat</h1>
+	<h1 class="text-2xl font-bold text-warm-900 mb-2">Vorrat</h1>
 	<p class="text-sm text-warm-500 mb-6">Zutaten die du zuhause hast – werden beim Einkaufen abgezogen.</p>
 
 	<!-- Add Item -->
