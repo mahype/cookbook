@@ -10,11 +10,11 @@
 	let pantryNames = $state(data.pantryNames);
 
 	const sortOptions = [
-		{ value: 'newest', label: 'Neueste' },
-		{ value: 'pantry', label: 'Vorrats-Match' },
-		{ value: 'cheapest', label: 'Günstigster Einkauf' },
-		{ value: 'fastest', label: 'Schnellste' },
-		{ value: 'simplest', label: 'Einfachste' }
+		{ value: 'newest', label: 'Neu' },
+		{ value: 'pantry', label: 'Vorrat %' },
+		{ value: 'cheapest', label: 'Günstig' },
+		{ value: 'fastest', label: 'Schnell' },
+		{ value: 'simplest', label: 'Simpel' }
 	] as const;
 
 	function setSort(value: string) {
