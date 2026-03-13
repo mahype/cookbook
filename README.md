@@ -1,100 +1,100 @@
 # 🍳 Cookbook
 
-Eine persönliche Rezept-App als Alternative zu HelloFresh – einfache Gerichte mit praktischen Einkaufslisten für deutsche Supermärkte.
+A personal recipe app as an alternative to HelloFresh – simple meals with practical shopping lists for German supermarkets.
 
-## Idee
+## The Idea
 
-HelloFresh ist bequem, aber teuer. Die Gewinnspanne auf die Zutaten ist enorm. Diese App löst das gleiche Problem – einfache Rezepte mit klaren Einkaufslisten – ohne den Aufpreis.
+HelloFresh is convenient but expensive. The markup on ingredients is enormous. This app solves the same problem – simple recipes with clear shopping lists – without the premium price.
 
-**Jeden Tag** werden 10 neue Rezeptvorschläge generiert. Du wählst aus, welche in deine persönliche Rezeptdatenbank übernommen werden. So wächst deine Sammlung Stück für Stück.
+**Every day**, 10 new recipe suggestions are generated. You choose which ones to add to your personal recipe database. This way, your collection grows step by step.
 
 ## Features
 
-- **📋 Tägliche Vorschläge** – 10 neue Rezepte pro Tag zum Durchblättern und Auswählen
-- **📖 Rezeptdatenbank** – Alle übernommenen Rezepte, filterbar nach Küche, Einkaufsort und Zubereitungszeit
-- **📦 Vorratsverwaltung** – Zutaten die du zuhause hast pflegen; Rezepte zeigen automatisch was du noch kaufen musst
-- **🛒 Smarte Einkaufslisten** – Zutaten getrennt in "Das brauchst du" und "Hast du im Vorrat"
-- **⚙️ Küchen-Präferenzen** – Bevorzugte Küchen einstellen (Asiatisch, Deutsch, Italienisch, etc.)
-- **📸 Rezeptfotos** – Unsplash-Bilder oder KI-generierte Fotos
-- **📱 Mobile-first** – Optimiert für Handy-Bedienung mit großen Touch-Targets
+- **📋 Daily Suggestions** – 10 new recipes per day to browse and select from
+- **📖 Recipe Database** – All saved recipes, filterable by cuisine, store, and prep time
+- **📦 Pantry Management** – Track ingredients you have at home; recipes automatically show what you still need to buy
+- **🛒 Smart Shopping Lists** – Ingredients split into "You need to buy" and "Already in your pantry"
+- **⚙️ Cuisine Preferences** – Set preferred cuisines (Asian, German, Italian, etc.)
+- **📸 Recipe Photos** – Unsplash images or AI-generated photos
+- **📱 Mobile-first** – Optimized for phone use with large touch targets
 
-## Praktisch gedacht
+## Built for Real Shopping
 
-- **Mengen für deutsche Supermärkte** – 300g Hähnchen von der Theke, 1 Paprika lose, 1 Dose Tomaten
-- **Einkaufsort pro Zutat** – Discounter, Supermarkt, Gemüsehändler, Asia-Laden, Theke
-- **Vorrat-System** – Sojasoße einmal kaufen → wird in allen Rezepten als vorhanden markiert
-- **Rezepte mit ähnlichen Zutaten** – Kartoffelsack gekauft? Hier sind 3 Gerichte dafür
+- **Quantities for German supermarkets** – 300g chicken from the deli counter, 1 loose bell pepper, 1 can of tomatoes
+- **Store per ingredient** – Discounter, supermarket, greengrocer, Asian grocery, deli counter
+- **Pantry system** – Buy soy sauce once → it's marked as available in all recipes
+- **Recipes with similar ingredients** – Bought a bag of potatoes? Here are 3 dishes for that
 
-## Tech-Stack
+## Tech Stack
 
-| Komponente | Technologie |
-|------------|-------------|
+| Component | Technology |
+|-----------|------------|
 | Frontend | SvelteKit (Svelte 5) |
 | Styling | Tailwind CSS |
-| Datenbank | SQLite (better-sqlite3) |
-| Sprache | TypeScript |
+| Database | SQLite (better-sqlite3) |
+| Language | TypeScript |
 | Build/Dev | Vite |
 
-Alles in einem Projekt – SvelteKit liefert Frontend und API-Routes. Die Datenbank ist eine einzelne SQLite-Datei.
+Everything in one project – SvelteKit serves both frontend and API routes. The database is a single SQLite file.
 
 ## Installation
 
 ```bash
-# Repository klonen
+# Clone the repository
 git clone git@github.com:mahype/cookbook.git
 cd cookbook
 
-# Dependencies installieren
+# Install dependencies
 npm install
 
-# Datenbank mit Beispielrezepten befüllen
+# Seed the database with example recipes
 npm run seed
 
-# Entwicklungsserver starten
+# Start the development server
 npm run dev
 ```
 
-Die App läuft dann unter `http://localhost:5173`.
+The app will be running at `http://localhost:5173`.
 
-### Voraussetzungen
+### Prerequisites
 
 - Node.js 18+
 - npm
 
-## Projektstruktur
+## Project Structure
 
 ```
 cookbook/
-├── data/                          # SQLite-Datenbank (gitignored)
+├── data/                          # SQLite database (gitignored)
 ├── scripts/
-│   └── seed.ts                    # 10 Beispielrezepte + Vorrats-Grundausstattung
+│   └── seed.ts                    # 10 example recipes + pantry essentials
 ├── src/
 │   ├── lib/
-│   │   ├── server/db.ts           # Datenbank-Setup und Queries
-│   │   ├── pantryMatch.ts         # Vorrat-Matching-Logik
+│   │   ├── server/db.ts           # Database setup and queries
+│   │   ├── pantryMatch.ts         # Pantry matching logic
 │   │   └── components/
-│   │       ├── RecipeCard.svelte   # Rezeptkarte mit Aufklapp-Details
-│   │       ├── RecipeDetails.svelte# Zutaten + Zubereitungsschritte
-│   │       ├── ConfirmDialog.svelte# Bestätigungs-Dialoge
-│   │       └── Toast.svelte        # Feedback-Benachrichtigungen
+│   │       ├── RecipeCard.svelte   # Recipe card with expandable details
+│   │       ├── RecipeDetails.svelte# Ingredients + preparation steps
+│   │       ├── ConfirmDialog.svelte# Confirmation dialogs
+│   │       └── Toast.svelte        # Feedback notifications
 │   └── routes/
-│       ├── vorschlaege/           # Tägliche Rezeptvorschläge
-│       ├── rezepte/               # Rezeptsammlung + Detailansicht
-│       ├── vorrat/                # Vorratsverwaltung
-│       ├── einstellungen/         # Küchen-Präferenzen
-│       └── api/                   # REST-Endpoints
-│           ├── vorschlaege/       # GET Tagesvorschläge
-│           ├── vorschlaege/neu/   # POST neue Vorschläge einfügen
-│           ├── rezepte/           # GET/DELETE Rezepte
-│           ├── rezepte/approve/   # POST Rezepte übernehmen
-│           ├── vorrat/            # GET/POST/DELETE Vorrat
-│           └── einstellungen/     # GET/PUT Präferenzen
+│       ├── vorschlaege/           # Daily recipe suggestions
+│       ├── rezepte/               # Recipe collection + detail view
+│       ├── vorrat/                # Pantry management
+│       ├── einstellungen/         # Cuisine preferences
+│       └── api/                   # REST endpoints
+│           ├── vorschlaege/       # GET daily suggestions
+│           ├── vorschlaege/neu/   # POST insert new suggestions
+│           ├── rezepte/           # GET/DELETE recipes
+│           ├── rezepte/approve/   # POST approve recipes
+│           ├── vorrat/            # GET/POST/DELETE pantry
+│           └── einstellungen/     # GET/PUT preferences
 └── vite.config.ts
 ```
 
 ## API
 
-### Neue Vorschläge einfügen
+### Insert New Suggestions
 
 ```bash
 POST /api/vorschlaege/neu
@@ -121,20 +121,20 @@ POST /api/vorschlaege/neu
 }
 ```
 
-### Vorrat abfragen
+### Query Pantry
 
 ```bash
 GET /api/vorrat
 # → { items: [{ id: 1, name: "Salz" }, ...] }
 ```
 
-### Präferenzen abfragen
+### Query Preferences
 
 ```bash
 GET /api/einstellungen
 # → { cuisine_preferences: ["Asiatisch", "Deutsch", "Italienisch"] }
 ```
 
-## Lizenz
+## License
 
-Privates Projekt.
+Private project.
