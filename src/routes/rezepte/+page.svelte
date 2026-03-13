@@ -9,6 +9,25 @@
 	let maxTime = $state(data.filters.current.maxTime);
 	let pantryNames = $state(data.pantryNames);
 
+	const sortOptions = [
+		{ value: 'newest', label: 'Neueste' },
+		{ value: 'pantry', label: 'Vorrats-Match' },
+		{ value: 'cheapest', label: 'Günstigster Einkauf' },
+		{ value: 'fastest', label: 'Schnellste' },
+		{ value: 'simplest', label: 'Einfachste' }
+	] as const;
+
+	function setSort(value: string) {
+		const params = new URLSearchParams(window.location.search);
+		if (value === 'newest') {
+			params.delete('sort');
+		} else {
+			params.set('sort', value);
+		}
+		const query = params.toString();
+		window.location.href = '/rezepte' + (query ? '?' + query : '');
+	}
+
 	function handlePantryAdd(name: string) {
 		const lower = name.toLowerCase();
 		if (!pantryNames.includes(lower)) {
@@ -25,6 +44,7 @@
 		if (cuisine) params.set('cuisine', cuisine);
 		if (store) params.set('store', store);
 		if (maxTime) params.set('maxTime', maxTime);
+		if (data.sort !== 'newest') params.set('sort', data.sort);
 		const query = params.toString();
 		window.location.href = '/rezepte' + (query ? '?' + query : '');
 	}
@@ -33,17 +53,32 @@
 		cuisine = '';
 		store = '';
 		maxTime = '';
-		window.location.href = '/rezepte';
+		const params = new URLSearchParams();
+		if (data.sort !== 'newest') params.set('sort', data.sort);
+		const query = params.toString();
+		window.location.href = '/rezepte' + (query ? '?' + query : '');
 	}
 
 	const hasFilters = $derived(cuisine || store || maxTime);
 </script>
 
 <div class="max-w-lg mx-auto px-4 pt-6">
-	<header class="mb-5">
+	<header class="mb-4">
 		<h1 class="text-2xl font-bold text-warm-900">Meine Rezepte</h1>
 		<p class="text-warm-500 text-sm mt-1">{data.recipes.length} Rezept{data.recipes.length !== 1 ? 'e' : ''} in der Sammlung</p>
 	</header>
+
+	<!-- Sort pills -->
+	<div class="flex gap-2 overflow-x-auto no-scrollbar mb-4 -mx-4 px-4">
+		{#each sortOptions as opt}
+			<button
+				onclick={() => setSort(opt.value)}
+				class="rounded-full px-4 py-2 text-sm whitespace-nowrap transition-colors {data.sort === opt.value ? 'bg-orange-500 text-white font-semibold' : 'bg-white border border-warm-200 text-warm-600'}"
+			>
+				{opt.label}
+			</button>
+		{/each}
+	</div>
 
 	<!-- Filters -->
 	<div class="bg-white rounded-2xl p-4 mb-5 border border-warm-100 shadow-sm">
