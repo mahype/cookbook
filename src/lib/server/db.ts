@@ -75,6 +75,17 @@ function initDb(db: Database.Database) {
 			notes TEXT DEFAULT '',
 			created_at TEXT DEFAULT (datetime('now'))
 		);
+
+		CREATE TABLE IF NOT EXISTS meal_plans (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			title TEXT DEFAULT '',
+			person_ids TEXT DEFAULT '[]',
+			recipe_ids TEXT DEFAULT '[]',
+			status TEXT DEFAULT 'planning' CHECK(status IN ('planning', 'voting', 'completed')),
+			votes TEXT DEFAULT '{}',
+			winner_recipe_id INTEGER,
+			created_at TEXT DEFAULT (datetime('now'))
+		);
 	`);
 
 	// Add pantry_based column if it doesn't exist
@@ -138,6 +149,32 @@ export type PersonRow = Omit<Person, 'likes' | 'dislikes' | 'allergies'> & {
 	dislikes: string;
 	allergies: string;
 };
+
+export type MealPlan = {
+	id: number;
+	title: string;
+	person_ids: number[];
+	recipe_ids: number[];
+	status: 'planning' | 'voting' | 'completed';
+	votes: Record<string, Record<string, number>>;
+	winner_recipe_id: number | null;
+	created_at: string;
+};
+
+export type MealPlanRow = Omit<MealPlan, 'person_ids' | 'recipe_ids' | 'votes'> & {
+	person_ids: string;
+	recipe_ids: string;
+	votes: string;
+};
+
+export function parseMealPlan(row: MealPlanRow): MealPlan {
+	return {
+		...row,
+		person_ids: JSON.parse(row.person_ids),
+		recipe_ids: JSON.parse(row.recipe_ids),
+		votes: JSON.parse(row.votes)
+	};
+}
 
 export function parsePerson(row: PersonRow): Person {
 	return {
