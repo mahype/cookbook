@@ -4,9 +4,6 @@
 
 	let { data }: { data: PageData } = $props();
 
-	let selectedIds = $state<Set<number>>(new Set());
-	let approving = $state(false);
-	let approveMessage = $state('');
 	let pantryNames = $state(data.pantryNames);
 
 	function handlePantryAdd(name: string) {
@@ -18,47 +15,6 @@
 
 	function handlePantryRemove(name: string) {
 		pantryNames = pantryNames.filter((p) => p !== name.toLowerCase());
-	}
-
-	function toggleRecipe(id: number) {
-		const next = new Set(selectedIds);
-		if (next.has(id)) {
-			next.delete(id);
-		} else {
-			next.add(id);
-		}
-		selectedIds = next;
-	}
-
-	async function approveSelected() {
-		if (selectedIds.size === 0) return;
-		approving = true;
-		approveMessage = '';
-
-		try {
-			const res = await fetch('/api/rezepte/approve', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ ids: Array.from(selectedIds) })
-			});
-
-			const result = await res.json();
-
-			if (res.ok) {
-				approveMessage = `${result.updated} Rezept${result.updated !== 1 ? 'e' : ''} übernommen!`;
-				selectedIds = new Set();
-				// Reload page to reflect status changes
-				setTimeout(() => {
-					window.location.reload();
-				}, 1500);
-			} else {
-				approveMessage = result.error || 'Fehler beim Übernehmen';
-			}
-		} catch {
-			approveMessage = 'Netzwerkfehler – bitte erneut versuchen';
-		} finally {
-			approving = false;
-		}
 	}
 
 	function formatDate(dateStr: string) {
@@ -86,52 +42,15 @@
 	{:else}
 		<div class="space-y-4 mb-6">
 			{#each data.recipes as recipe (recipe.id)}
-				{@const isApproved = recipe.status === 'approved'}
-				{#if isApproved}
-					<div class="opacity-60">
-						<RecipeCard {recipe} selectable={false} expandable={true} {pantryNames} onPantryAdd={handlePantryAdd} onPantryRemove={handlePantryRemove} />
-						<p class="text-center text-herb-600 text-sm font-medium -mt-1 mb-2">Bereits übernommen</p>
-					</div>
-				{:else}
-					<RecipeCard
-						{recipe}
-						selectable={true}
-						selected={selectedIds.has(recipe.id)}
-						onToggle={toggleRecipe}
-						expandable={true}
-						{pantryNames}
-						onPantryAdd={handlePantryAdd}
-						onPantryRemove={handlePantryRemove}
-					/>
-				{/if}
+				<RecipeCard
+					{recipe}
+					approvable={true}
+					expandable={true}
+					{pantryNames}
+					onPantryAdd={handlePantryAdd}
+					onPantryRemove={handlePantryRemove}
+				/>
 			{/each}
 		</div>
-
-		{#if selectedIds.size > 0 || approveMessage}
-			<div class="fixed bottom-20 left-0 right-0 z-40">
-				<div class="max-w-lg mx-auto">
-					{#if approveMessage}
-						<div class="px-4 pb-2">
-							<div class="text-center py-3 px-4 rounded-xl {approveMessage.includes('Fehler') || approveMessage.includes('Netzwerk') ? 'bg-red-50 text-red-700' : 'bg-herb-50 text-herb-700'} font-medium text-sm">
-								{approveMessage}
-							</div>
-						</div>
-					{/if}
-					{#if selectedIds.size > 0}
-						<button
-							onclick={approveSelected}
-							disabled={approving}
-							class="w-full py-4 px-6 min-h-[52px] font-semibold text-white text-base transition-all duration-200 bg-orange-500 hover:bg-orange-600 active:scale-[0.98]"
-						>
-							{#if approving}
-								Wird übernommen...
-							{:else}
-								✅ {selectedIds.size} Rezept{selectedIds.size !== 1 ? 'e' : ''} übernehmen
-							{/if}
-						</button>
-					{/if}
-				</div>
-			</div>
-		{/if}
 	{/if}
 </div>

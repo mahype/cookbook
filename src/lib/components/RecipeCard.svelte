@@ -2,12 +2,11 @@
 	import type { Recipe } from '$lib/server/db';
 	import { slide } from 'svelte/transition';
 	import RecipeDetails from './RecipeDetails.svelte';
+	import Toast from './Toast.svelte';
 
 	type Props = {
 		recipe: Recipe;
-		selectable?: boolean;
-		selected?: boolean;
-		onToggle?: (id: number) => void;
+		approvable?: boolean;
 		expandable?: boolean;
 		pantryNames?: string[];
 		onPantryAdd?: (name: string) => void;
@@ -16,9 +15,7 @@
 
 	let {
 		recipe,
-		selectable = false,
-		selected = false,
-		onToggle,
+		approvable = false,
 		expandable = false,
 		pantryNames = [],
 		onPantryAdd,
@@ -26,6 +23,32 @@
 	}: Props = $props();
 
 	let expanded = $state(false);
+	let approved = $state(recipe.status === 'approved');
+	let approving = $state(false);
+	let toastMessage = $state('');
+
+	async function approveRecipe(e: Event) {
+		e.preventDefault();
+		e.stopPropagation();
+		if (approving || approved) return;
+		approving = true;
+
+		try {
+			const res = await fetch('/api/rezepte/approve', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ ids: [recipe.id] })
+			});
+			if (res.ok) {
+				approved = true;
+				toastMessage = `\u2705 ${recipe.name} übernommen!`;
+			}
+		} catch {
+			toastMessage = 'Fehler – bitte erneut versuchen';
+		} finally {
+			approving = false;
+		}
+	}
 
 	const cuisineColors: Record<string, string> = {
 		Deutsch: 'bg-amber-100 text-amber-800',
@@ -81,19 +104,33 @@
 				{cuisineEmojis[recipe.cuisine] || '🍽️'}
 			</div>
 		{/if}
-		{#if selectable}
+		{#if approvable && approved}
 			<div class="absolute top-3 right-3">
-				<div
-					class="w-9 h-9 rounded-full border-2 flex items-center justify-center transition-colors {selected
-						? 'bg-spice-500 border-spice-500'
-						: 'bg-white/80 border-warm-300'}"
+				<div class="flex items-center gap-1 bg-green-600 text-white text-xs font-semibold px-2.5 py-1.5 rounded-full shadow">
+					<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+					</svg>
+					Übernommen
+				</div>
+			</div>
+		{:else if approvable && !approved}
+			<div class="absolute top-3 right-3">
+				<button
+					onclick={approveRecipe}
+					disabled={approving}
+					class="w-11 h-11 rounded-full bg-orange-500 hover:bg-orange-600 active:scale-95 text-white flex items-center justify-center shadow-lg transition-all duration-150"
 				>
-					{#if selected}
-						<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+					{#if approving}
+						<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+						</svg>
+					{:else}
+						<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 5v14m-7-7h14" />
 						</svg>
 					{/if}
-				</div>
+				</button>
 			</div>
 		{/if}
 	</div>
@@ -131,21 +168,14 @@
 {/snippet}
 
 <div
-	class="bg-white rounded-2xl shadow-sm overflow-hidden border border-warm-100 transition-all duration-200 {selected
-		? 'ring-2 ring-spice-500 shadow-md'
-		: 'hover:shadow-md'}"
+	class="bg-white rounded-2xl shadow-sm overflow-hidden border transition-all duration-200 {approved && approvable
+		? 'border-green-200 opacity-60'
+		: 'border-warm-100 hover:shadow-md'}"
 >
-	{#if selectable}
-		<button class="w-full text-left" onclick={() => onToggle?.(recipe.id)}>
-			{@render cardImage()}
-			{@render cardContent()}
-		</button>
-	{:else}
-		<a href="/rezepte/{recipe.id}" class="block">
-			{@render cardImage()}
-			{@render cardContent()}
-		</a>
-	{/if}
+	<a href="/rezepte/{recipe.id}" class="block">
+		{@render cardImage()}
+		{@render cardContent()}
+	</a>
 
 	{#if expandable}
 		<div class="border-t border-warm-100">
@@ -176,3 +206,5 @@
 		{/if}
 	{/if}
 </div>
+
+<Toast message={toastMessage} onClose={() => (toastMessage = '')} />
