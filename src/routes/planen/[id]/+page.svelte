@@ -249,7 +249,7 @@
 
 <!-- Bottom bar -->
 {#if selectionCount > 0}
-	<div class="fixed bottom-20 left-0 right-0 p-4 z-30 bg-gradient-to-t from-warm-50 via-warm-50 to-transparent pt-8">
+	<div class="fixed bottom-20 left-0 right-0 px-4 pt-3 pb-3 z-30 bg-warm-50 border-t border-warm-200">
 		<div class="max-w-lg mx-auto space-y-2">
 			<button
 				onclick={handleWeiter}
