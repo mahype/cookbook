@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import StepIndicator from '$lib/components/StepIndicator.svelte';
+	import RecipeCard from '$lib/components/RecipeCard.svelte';
 	import type { Recipe, Person } from '$lib/server/db';
 
 	const planId = $derived(page.params.id);
@@ -123,26 +124,7 @@
 		}
 	}
 
-	const cuisineColors: Record<string, string> = {
-		Deutsch: 'bg-amber-100 text-amber-800',
-		Asiatisch: 'bg-red-100 text-red-800',
-		Italienisch: 'bg-green-100 text-green-800',
-		Mexikanisch: 'bg-orange-100 text-orange-800'
-	};
 
-	const cuisineEmojis: Record<string, string> = {
-		Deutsch: '🇩🇪',
-		Asiatisch: '🥢',
-		Italienisch: '🇮🇹',
-		Mexikanisch: '🌮'
-	};
-
-	function placeholderGradient(name: string) {
-		const hash = name.split('').reduce((a, b) => ((a << 5) - a + b.charCodeAt(0)) | 0, 0);
-		const h1 = Math.abs(hash % 360);
-		const h2 = (h1 + 40) % 360;
-		return `linear-gradient(135deg, hsl(${h1}, 70%, 80%), hsl(${h2}, 60%, 70%))`;
-	}
 </script>
 
 <div class="max-w-lg mx-auto px-4 pt-6 pb-40">
@@ -187,61 +169,16 @@
 			<p class="text-warm-400 text-sm mt-1">Alle Rezepte enthalten unverträgliche Zutaten</p>
 		</div>
 	{:else}
-		<div class="space-y-3">
+		<div class="space-y-4">
 			{#each recipes as recipe (recipe.id)}
-				{@const isSelected = selectedRecipeIds.has(recipe.id)}
-				<button
-					onclick={() => toggleRecipe(recipe.id)}
-					class="w-full text-left rounded-2xl shadow-sm overflow-hidden border-2 transition-all duration-150 bg-white
-						{isSelected ? 'border-herb-400 ring-1 ring-herb-200' : 'border-warm-100 hover:border-warm-200'}"
-				>
-					<div class="flex">
-						<!-- Recipe thumbnail -->
-						<div class="w-24 h-24 flex-shrink-0 relative overflow-hidden">
-							{#if recipe.image_url}
-								<img src={recipe.image_url} alt={recipe.name} class="w-full h-full object-cover" />
-							{:else}
-								<div class="w-full h-full flex items-center justify-center text-2xl" style="background: {placeholderGradient(recipe.name)}">
-									{cuisineEmojis[recipe.cuisine] || '🍽️'}
-								</div>
-							{/if}
-						</div>
-
-						<!-- Recipe info -->
-						<div class="flex-1 p-3 min-w-0">
-							<h3 class="font-semibold text-warm-900 text-sm leading-tight mb-1 truncate">{recipe.name}</h3>
-							<p class="text-warm-500 text-xs mb-2 line-clamp-1">{recipe.description}</p>
-							<div class="flex flex-wrap gap-1">
-								<span class="text-[10px] px-1.5 py-0.5 rounded-full {cuisineColors[recipe.cuisine] || 'bg-warm-100 text-warm-700'}">
-									{recipe.cuisine}
-								</span>
-								<span class="text-[10px] px-1.5 py-0.5 rounded-full bg-warm-100 text-warm-700">
-									{recipe.prep_time} Min
-								</span>
-								<span class="text-[10px] px-1.5 py-0.5 rounded-full bg-warm-100 text-warm-700">
-									~{recipe.cost_estimate.toFixed(2)}€
-								</span>
-							</div>
-						</div>
-
-						<!-- Selection indicator -->
-						<div class="flex items-center pr-3">
-							{#if isSelected}
-								<div class="w-7 h-7 rounded-full bg-herb-500 flex items-center justify-center">
-									<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
-									</svg>
-								</div>
-							{:else}
-								<div class="w-7 h-7 rounded-full bg-spice-500 flex items-center justify-center">
-									<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 5v14m-7-7h14" />
-									</svg>
-								</div>
-							{/if}
-						</div>
-					</div>
-				</button>
+				<RecipeCard
+					{recipe}
+					selectable={true}
+					selected={selectedRecipeIds.has(recipe.id)}
+					onSelect={toggleRecipe}
+					expandable={true}
+					{pantryNames}
+				/>
 			{/each}
 		</div>
 	{/if}
