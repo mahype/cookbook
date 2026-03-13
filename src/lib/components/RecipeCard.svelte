@@ -7,9 +7,6 @@
 		recipe: Recipe;
 		approvable?: boolean;
 		expandable?: boolean;
-		selectable?: boolean;
-		selected?: boolean;
-		onSelect?: (id: number) => void;
 		pantryNames?: string[];
 		onPantryAdd?: (name: string) => void;
 		onPantryRemove?: (name: string) => void;
@@ -19,9 +16,6 @@
 		recipe,
 		approvable = false,
 		expandable = false,
-		selectable = false,
-		selected = false,
-		onSelect,
 		pantryNames = [],
 		onPantryAdd,
 		onPantryRemove
@@ -146,17 +140,6 @@
 				</button>
 			</div>
 		{/if}
-		{#if selectable}
-			<div class="absolute top-3 right-3">
-				<div class="w-11 h-11 rounded-full {selected ? 'bg-orange-500' : 'bg-white/80 border-2 border-warm-300'} flex items-center justify-center shadow-lg transition-all duration-150">
-					{#if selected}
-						<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
-						</svg>
-					{/if}
-				</div>
-			</div>
-		{/if}
 	</div>
 {/snippet}
 
@@ -186,16 +169,12 @@
 	</div>
 {/snippet}
 
-<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-	class="rounded-2xl shadow-sm overflow-hidden border-2 transition-all duration-200 {selected
-		? 'border-orange-400 ring-1 ring-orange-200 bg-white'
-		: approved && approvable
-			? 'border-green-200 opacity-60'
-			: recipe.pantry_based
-				? 'bg-white border-orange-200 hover:shadow-md'
-				: 'bg-white border-warm-100 hover:shadow-md'}"
-	onclick={() => selectable && onSelect?.(recipe.id)}
+	class="rounded-2xl shadow-sm overflow-hidden border transition-all duration-200 {approved && approvable
+		? 'border-green-200 opacity-60'
+		: recipe.pantry_based
+			? 'bg-white border-orange-200 hover:shadow-md'
+			: 'bg-white border-warm-100 hover:shadow-md'}"
 >
 	<a href="/rezepte/{recipe.id}" class="block">
 		{@render cardImage()}
