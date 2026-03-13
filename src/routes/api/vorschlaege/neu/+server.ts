@@ -13,6 +13,22 @@ export const POST: RequestHandler = async ({ request }) => {
 	const db = getDb();
 	const today = new Date().toISOString().split('T')[0];
 
+	// Clean up old unapproved suggestions before inserting new ones
+	const oldSuggestions = db
+		.prepare('SELECT recipe_ids FROM daily_suggestions WHERE date != ?')
+		.all(today) as { recipe_ids: string }[];
+
+	const oldRecipeIds = oldSuggestions.flatMap((row) => JSON.parse(row.recipe_ids) as number[]);
+
+	if (oldRecipeIds.length > 0) {
+		const placeholders = oldRecipeIds.map(() => '?').join(',');
+		db.prepare(
+			`DELETE FROM recipes WHERE id IN (${placeholders}) AND status = 'vorschlag'`
+		).run(...oldRecipeIds);
+	}
+
+	db.prepare('DELETE FROM daily_suggestions WHERE date != ?').run(today);
+
 	const insert = db.prepare(`
 		INSERT INTO recipes (name, description, cuisine, cost_estimate, prep_time, difficulty, image_url, ingredients, steps, shopping_tags, store_category, status, pantry_based)
 		VALUES (@name, @description, @cuisine, @cost_estimate, @prep_time, @difficulty, @image_url, @ingredients, @steps, @shopping_tags, @store_category, 'vorschlag', @pantry_based)
