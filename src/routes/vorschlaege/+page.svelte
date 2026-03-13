@@ -71,7 +71,7 @@
 	}
 </script>
 
-<div class="max-w-lg mx-auto px-4 pt-6">
+<div class="max-w-lg mx-auto px-4 pt-6 pb-16">
 	<header class="mb-6">
 		<h1 class="text-2xl font-bold text-warm-900">Tagesvorschläge</h1>
 		<p class="text-warm-500 text-sm mt-1">{formatDate(data.date)}</p>
@@ -107,29 +107,30 @@
 			{/each}
 		</div>
 
-		{#if data.recipes.some((r) => r.status === 'vorschlag')}
-			<div class="sticky bottom-20 z-40 pb-4">
-				{#if approveMessage}
-					<div class="text-center py-3 px-4 rounded-xl mb-3 {approveMessage.includes('Fehler') || approveMessage.includes('Netzwerk') ? 'bg-red-50 text-red-700' : 'bg-herb-50 text-herb-700'} font-medium text-sm">
-						{approveMessage}
-					</div>
-				{/if}
-				<button
-					onclick={approveSelected}
-					disabled={selectedIds.size === 0 || approving}
-					class="w-full py-4 px-6 min-h-[52px] rounded-2xl font-semibold text-white text-base transition-all duration-200
-						{selectedIds.size > 0 && !approving
-							? 'bg-spice-500 hover:bg-spice-600 shadow-lg shadow-spice-500/30 active:scale-[0.98]'
-							: 'bg-warm-300 cursor-not-allowed'}"
-				>
-					{#if approving}
-						Wird übernommen...
-					{:else if selectedIds.size === 0}
-						Rezepte auswählen
-					{:else}
-						{selectedIds.size} Rezept{selectedIds.size !== 1 ? 'e' : ''} übernehmen
+		{#if selectedIds.size > 0 || approveMessage}
+			<div class="fixed bottom-20 left-0 right-0 z-40">
+				<div class="max-w-lg mx-auto">
+					{#if approveMessage}
+						<div class="px-4 pb-2">
+							<div class="text-center py-3 px-4 rounded-xl {approveMessage.includes('Fehler') || approveMessage.includes('Netzwerk') ? 'bg-red-50 text-red-700' : 'bg-herb-50 text-herb-700'} font-medium text-sm">
+								{approveMessage}
+							</div>
+						</div>
 					{/if}
-				</button>
+					{#if selectedIds.size > 0}
+						<button
+							onclick={approveSelected}
+							disabled={approving}
+							class="w-full py-4 px-6 min-h-[52px] font-semibold text-white text-base transition-all duration-200 bg-orange-500 hover:bg-orange-600 active:scale-[0.98]"
+						>
+							{#if approving}
+								Wird übernommen...
+							{:else}
+								✅ {selectedIds.size} Rezept{selectedIds.size !== 1 ? 'e' : ''} übernehmen
+							{/if}
+						</button>
+					{/if}
+				</div>
 			</div>
 		{/if}
 	{/if}
