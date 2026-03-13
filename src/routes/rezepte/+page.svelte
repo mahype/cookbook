@@ -192,22 +192,22 @@
 
 	<!-- Menu items (below FAB) -->
 	{#if fabOpen}
-		<a
-			href="/planen"
-			class="flex items-center gap-3 animate-fade-in-down"
-		>
-			<span class="bg-white text-warm-800 text-sm font-medium px-3 py-2 rounded-lg shadow-md whitespace-nowrap">
-				Essen planen
-			</span>
-			<span class="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center shadow-md">
-				<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-					<rect x="3" y="4" width="18" height="18" rx="2" />
-					<line x1="16" y1="2" x2="16" y2="6" />
-					<line x1="8" y1="2" x2="8" y2="6" />
-					<line x1="3" y1="10" x2="21" y2="10" />
-				</svg>
-			</span>
-		</a>
+		<div class="bg-white rounded-2xl shadow-lg border border-warm-200 overflow-hidden animate-fade-in-down min-w-[180px]">
+			<a
+				href="/planen"
+				class="flex items-center gap-3 px-4 py-3 hover:bg-warm-50 transition-colors"
+			>
+				<span class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+					<svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+						<rect x="3" y="4" width="18" height="18" rx="2" />
+						<line x1="16" y1="2" x2="16" y2="6" />
+						<line x1="8" y1="2" x2="8" y2="6" />
+						<line x1="3" y1="10" x2="21" y2="10" />
+					</svg>
+				</span>
+				<span class="text-sm font-medium text-warm-800">Essen planen</span>
+			</a>
+		</div>
 	{/if}
 </div>
 
