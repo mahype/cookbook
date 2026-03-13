@@ -64,6 +64,17 @@ function initDb(db: Database.Database) {
 			checked INTEGER DEFAULT 0,
 			created_at TEXT NOT NULL DEFAULT (datetime('now'))
 		);
+
+		CREATE TABLE IF NOT EXISTS persons (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL,
+			is_household INTEGER DEFAULT 1,
+			likes TEXT DEFAULT '[]',
+			dislikes TEXT DEFAULT '[]',
+			allergies TEXT DEFAULT '[]',
+			notes TEXT DEFAULT '',
+			created_at TEXT DEFAULT (datetime('now'))
+		);
 	`);
 
 	// Add pantry_based column if it doesn't exist
@@ -110,6 +121,32 @@ export type PantryItem = {
 	name: string;
 	created_at: string;
 };
+
+export type Person = {
+	id: number;
+	name: string;
+	is_household: number;
+	likes: string[];
+	dislikes: string[];
+	allergies: string[];
+	notes: string;
+	created_at: string;
+};
+
+export type PersonRow = Omit<Person, 'likes' | 'dislikes' | 'allergies'> & {
+	likes: string;
+	dislikes: string;
+	allergies: string;
+};
+
+export function parsePerson(row: PersonRow): Person {
+	return {
+		...row,
+		likes: JSON.parse(row.likes),
+		dislikes: JSON.parse(row.dislikes),
+		allergies: JSON.parse(row.allergies)
+	};
+}
 
 export function getPantryItems(): PantryItem[] {
 	return getDb().prepare('SELECT * FROM pantry ORDER BY name COLLATE NOCASE').all() as PantryItem[];
