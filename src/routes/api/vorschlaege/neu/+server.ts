@@ -14,8 +14,8 @@ export const POST: RequestHandler = async ({ request }) => {
 	const today = new Date().toISOString().split('T')[0];
 
 	const insert = db.prepare(`
-		INSERT INTO recipes (name, description, cuisine, cost_estimate, prep_time, difficulty, image_url, ingredients, steps, shopping_tags, store_category, status)
-		VALUES (@name, @description, @cuisine, @cost_estimate, @prep_time, @difficulty, @image_url, @ingredients, @steps, @shopping_tags, @store_category, 'vorschlag')
+		INSERT INTO recipes (name, description, cuisine, cost_estimate, prep_time, difficulty, image_url, ingredients, steps, shopping_tags, store_category, status, pantry_based)
+		VALUES (@name, @description, @cuisine, @cost_estimate, @prep_time, @difficulty, @image_url, @ingredients, @steps, @shopping_tags, @store_category, 'vorschlag', @pantry_based)
 	`);
 
 	const insertAll = db.transaction(() => {
@@ -40,7 +40,8 @@ export const POST: RequestHandler = async ({ request }) => {
 				ingredients: JSON.stringify(ingredients),
 				steps: JSON.stringify(recipe.steps || []),
 				shopping_tags: JSON.stringify(recipe.shopping_tags || []),
-				store_category: recipe.store_category || ''
+				store_category: recipe.store_category || '',
+				pantry_based: recipe.pantry_based ? 1 : 0
 			});
 			ids.push(Number(result.lastInsertRowid));
 		}

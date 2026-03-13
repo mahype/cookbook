@@ -105,9 +105,9 @@
 			<h3 class="font-semibold text-warm-900 text-base leading-tight">{recipe.name}</h3>
 		</div>
 		{#if recipe.pantry_based}
-			<span class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-herb-100 text-herb-700 mb-2">
-				🏠 Aus deinem Vorrat
-			</span>
+			<div class="flex items-center gap-2 text-sm font-semibold px-3 py-1.5 rounded-lg bg-green-100 text-green-800 mb-2">
+				🏠 Viele Zutaten aus deinem Vorrat
+			</div>
 		{/if}
 		<p class="text-warm-500 text-sm mb-3 line-clamp-2">{recipe.description}</p>
 		<div class="flex flex-wrap gap-1.5">

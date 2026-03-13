@@ -24,7 +24,7 @@ export const load: PageServerLoad = async () => {
 
 	const placeholders = recipeIds.map(() => '?').join(',');
 	const rows = db
-		.prepare(`SELECT * FROM recipes WHERE id IN (${placeholders})`)
+		.prepare(`SELECT * FROM recipes WHERE id IN (${placeholders}) ORDER BY pantry_based DESC`)
 		.all(...recipeIds) as RecipeRow[];
 
 	return {
