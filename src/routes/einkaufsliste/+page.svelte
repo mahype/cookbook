@@ -1,5 +1,4 @@
 <script lang="ts">
-	import Toast from '$lib/components/Toast.svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import type { PageData } from './$types';
 	import type { ShoppingItem } from './+page.server';
@@ -7,7 +6,6 @@
 	let { data }: { data: PageData } = $props();
 
 	let items = $state<ShoppingItem[]>(data.items);
-	let toastMessage = $state('');
 	let showClearAllDialog = $state(false);
 	let toggling = $state<number | null>(null);
 	let deleting = $state<number | null>(null);
@@ -84,7 +82,6 @@
 		const res = await fetch('/api/einkaufsliste', { method: 'DELETE' });
 		if (res.ok) {
 			items = items.filter((i) => !i.checked);
-			toastMessage = 'Erledigte Einträge entfernt';
 		}
 	}
 
@@ -93,7 +90,6 @@
 		const res = await fetch('/api/einkaufsliste?all=true', { method: 'DELETE' });
 		if (res.ok) {
 			items = [];
-			toastMessage = 'Einkaufsliste geleert';
 		}
 	}
 </script>
@@ -227,5 +223,3 @@
 	onConfirm={clearAll}
 	onCancel={() => (showClearAllDialog = false)}
 />
-
-<Toast message={toastMessage} onClose={() => (toastMessage = '')} />

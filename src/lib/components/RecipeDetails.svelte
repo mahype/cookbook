@@ -2,7 +2,6 @@
 	import type { Recipe } from '$lib/server/db';
 	import { isMatchedByPantry } from '$lib/pantryMatch';
 	import ConfirmDialog from './ConfirmDialog.svelte';
-	import Toast from './Toast.svelte';
 
 	type Props = {
 		recipe: Recipe;
@@ -19,7 +18,6 @@
 	let pendingRemoveIngredient = $state<string | null>(null);
 	let addingToCart = $state<string | null>(null);
 	let addingAllToCart = $state(false);
-	let toastMessage = $state('');
 
 	const storeColors: Record<string, string> = {
 		Discounter: 'bg-blue-100 text-blue-700',
@@ -66,7 +64,6 @@
 			});
 			if (res.ok || res.status === 409) {
 				onPantryAdd?.(name);
-				toastMessage = `✅ ${name} zu deinen Vorräten hinzugefügt`;
 			}
 		} finally {
 			addingIngredient = null;
@@ -90,7 +87,6 @@
 			});
 			if (res.ok) {
 				onPantryRemove?.(name);
-				toastMessage = `❌ ${name} aus Vorräten entfernt`;
 			}
 		} finally {
 			removingIngredient = null;
@@ -107,7 +103,6 @@
 			});
 			const checkData = await checkRes.json();
 			if (checkData.exists) {
-				toastMessage = `Bereits auf der Einkaufsliste`;
 				return;
 			}
 
@@ -124,10 +119,7 @@
 					}]
 				})
 			});
-			if (res.ok) {
-				toastMessage = `🛒 ${ingredient.name} zur Einkaufsliste hinzugefügt`;
-			}
-		} finally {
+			} finally {
 			addingToCart = null;
 		}
 	}
@@ -148,10 +140,7 @@
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ items })
 			});
-			if (res.ok) {
-				toastMessage = `🛒 ${items.length} Zutaten zur Einkaufsliste hinzugefügt`;
-			}
-		} finally {
+			} finally {
 			addingAllToCart = false;
 		}
 	}
@@ -306,5 +295,3 @@
 	onConfirm={confirmRemoveFromPantry}
 	onCancel={() => (pendingRemoveIngredient = null)}
 />
-
-<Toast message={toastMessage} onClose={() => (toastMessage = '')} />

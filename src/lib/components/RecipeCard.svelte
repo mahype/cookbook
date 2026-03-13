@@ -2,7 +2,6 @@
 	import type { Recipe } from '$lib/server/db';
 	import { slide } from 'svelte/transition';
 	import RecipeDetails from './RecipeDetails.svelte';
-	import Toast from './Toast.svelte';
 
 	type Props = {
 		recipe: Recipe;
@@ -25,7 +24,6 @@
 	let expanded = $state(false);
 	let approved = $state(recipe.status === 'approved');
 	let approving = $state(false);
-	let toastMessage = $state('');
 
 	async function approveRecipe(e: Event) {
 		e.preventDefault();
@@ -41,10 +39,9 @@
 			});
 			if (res.ok) {
 				approved = true;
-				toastMessage = `\u2705 ${recipe.name} übernommen!`;
 			}
 		} catch {
-			toastMessage = 'Fehler – bitte erneut versuchen';
+			// error silently handled
 		} finally {
 			approving = false;
 		}
@@ -206,5 +203,3 @@
 		{/if}
 	{/if}
 </div>
-
-<Toast message={toastMessage} onClose={() => (toastMessage = '')} />

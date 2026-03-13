@@ -2,7 +2,6 @@
 	import { goto } from '$app/navigation';
 	import { isMatchedByPantry } from '$lib/pantryMatch';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-	import Toast from '$lib/components/Toast.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -17,7 +16,6 @@
 	let pendingRemoveIngredient = $state<string | null>(null);
 	let addingToCart = $state<string | null>(null);
 	let addingAllToCart = $state(false);
-	let toastMessage = $state('');
 
 	const toBuy = $derived(
 		recipe.ingredients.filter(
@@ -81,7 +79,6 @@
 				if (!pantryNames.includes(lower)) {
 					pantryNames = [...pantryNames, lower];
 				}
-				toastMessage = `✅ ${name} zu deinen Vorräten hinzugefügt`;
 			}
 		} finally {
 			addingIngredient = null;
@@ -105,7 +102,6 @@
 			});
 			if (res.ok) {
 				pantryNames = pantryNames.filter((p) => p !== name.toLowerCase());
-				toastMessage = `❌ ${name} aus Vorräten entfernt`;
 			}
 		} finally {
 			removingIngredient = null;
@@ -122,7 +118,6 @@
 			});
 			const checkData = await checkRes.json();
 			if (checkData.exists) {
-				toastMessage = `Bereits auf der Einkaufsliste`;
 				return;
 			}
 
@@ -139,10 +134,7 @@
 					}]
 				})
 			});
-			if (res.ok) {
-				toastMessage = `🛒 ${ingredient.name} zur Einkaufsliste hinzugefügt`;
-			}
-		} finally {
+			} finally {
 			addingToCart = null;
 		}
 	}
@@ -163,10 +155,7 @@
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ items })
 			});
-			if (res.ok) {
-				toastMessage = `🛒 ${items.length} Zutaten zur Einkaufsliste hinzugefügt`;
-			}
-		} finally {
+			} finally {
 			addingAllToCart = false;
 		}
 	}
@@ -470,5 +459,3 @@
 	onConfirm={confirmRemoveFromPantry}
 	onCancel={() => (pendingRemoveIngredient = null)}
 />
-
-<Toast message={toastMessage} onClose={() => (toastMessage = '')} />
