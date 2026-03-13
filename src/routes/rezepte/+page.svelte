@@ -60,6 +60,8 @@
 	}
 
 	const hasFilters = $derived(cuisine || store || maxTime);
+
+	let fabOpen = $state(false);
 </script>
 
 <div class="max-w-lg mx-auto px-4 pt-6">
@@ -150,10 +152,77 @@
 			{/if}
 		</div>
 	{:else}
-		<div class="space-y-4 mb-6">
+		<div class="space-y-4 pb-24">
 			{#each data.recipes as recipe (recipe.id)}
 				<RecipeCard {recipe} expandable={true} {pantryNames} onPantryAdd={handlePantryAdd} onPantryRemove={handlePantryRemove} />
 			{/each}
 		</div>
 	{/if}
 </div>
+
+<!-- FAB overlay backdrop -->
+{#if fabOpen}
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div
+		class="fixed inset-0 bg-black/20 z-40 transition-opacity duration-300"
+		onclick={() => (fabOpen = false)}
+		onkeydown={(e) => e.key === 'Escape' && (fabOpen = false)}
+	></div>
+{/if}
+
+<!-- FAB + menu -->
+<div class="fixed bottom-24 right-4 z-40 flex flex-col items-end gap-3">
+	<!-- Menu items -->
+	{#if fabOpen}
+		<a
+			href="/planen"
+			class="flex items-center gap-3 animate-fade-in-up"
+		>
+			<span class="bg-white text-warm-800 text-sm font-medium px-3 py-2 rounded-lg shadow-md whitespace-nowrap">
+				Essen planen
+			</span>
+			<span class="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center shadow-md">
+				<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+					<rect x="3" y="4" width="18" height="18" rx="2" />
+					<line x1="16" y1="2" x2="16" y2="6" />
+					<line x1="8" y1="2" x2="8" y2="6" />
+					<line x1="3" y1="10" x2="21" y2="10" />
+				</svg>
+			</span>
+		</a>
+	{/if}
+
+	<!-- FAB button -->
+	<button
+		onclick={() => (fabOpen = !fabOpen)}
+		class="w-14 h-14 rounded-full bg-orange-500 hover:bg-orange-600 text-white shadow-lg flex items-center justify-center transition-transform duration-300"
+		aria-label={fabOpen ? 'Menü schließen' : 'Aktionsmenü öffnen'}
+	>
+		<svg
+			class="w-7 h-7 transition-transform duration-300 {fabOpen ? 'rotate-45' : ''}"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2.5"
+			viewBox="0 0 24 24"
+		>
+			<line x1="12" y1="5" x2="12" y2="19" />
+			<line x1="5" y1="12" x2="19" y2="12" />
+		</svg>
+	</button>
+</div>
+
+<style>
+	@keyframes fade-in-up {
+		from {
+			opacity: 0;
+			transform: translateY(8px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+	.animate-fade-in-up {
+		animation: fade-in-up 0.2s ease-out;
+	}
+</style>
