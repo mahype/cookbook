@@ -75,7 +75,7 @@
 </script>
 
 {#snippet cardImage()}
-	<div class="relative">
+	<div class="relative overflow-hidden">
 		{#if recipe.image_url}
 			<img
 				src={recipe.image_url}
@@ -99,6 +99,16 @@
 				style="background: {placeholderGradient(recipe.name)}"
 			>
 				{cuisineEmojis[recipe.cuisine] || '🍽️'}
+			</div>
+		{/if}
+		{#if recipe.pantry_based}
+			<div class="absolute top-0 left-0 z-10">
+				<div
+					class="absolute bg-emerald-600 text-white text-[10px] font-bold text-center leading-tight py-1"
+					style="width: 140px; top: 22px; left: -36px; transform: rotate(-45deg);"
+				>
+					🏠 Aus dem Vorrat
+				</div>
 			</div>
 		{/if}
 		{#if approvable && approved}
@@ -138,11 +148,6 @@
 		<div class="flex items-start justify-between gap-2 mb-2">
 			<h3 class="font-semibold text-warm-900 text-base leading-tight">{recipe.name}</h3>
 		</div>
-		{#if recipe.pantry_based}
-			<div class="flex items-center gap-2 text-sm font-semibold px-3 py-1.5 rounded-lg bg-green-100 text-green-800 mb-2">
-				🏠 Viele Zutaten aus deinem Vorrat
-			</div>
-		{/if}
 		<p class="text-warm-500 text-sm mb-3 line-clamp-2">{recipe.description}</p>
 		<div class="flex flex-wrap gap-1.5">
 			<span
@@ -165,9 +170,11 @@
 {/snippet}
 
 <div
-	class="bg-white rounded-2xl shadow-sm overflow-hidden border transition-all duration-200 {approved && approvable
+	class="rounded-2xl shadow-sm overflow-hidden border transition-all duration-200 {approved && approvable
 		? 'border-green-200 opacity-60'
-		: 'border-warm-100 hover:shadow-md'}"
+		: recipe.pantry_based
+			? 'bg-emerald-50 border-green-200 hover:shadow-md'
+			: 'bg-white border-warm-100 hover:shadow-md'}"
 >
 	<a href="/rezepte/{recipe.id}" class="block">
 		{@render cardImage()}
@@ -178,7 +185,7 @@
 		<div class="border-t border-warm-100">
 			<button
 				onclick={() => (expanded = !expanded)}
-				class="w-full flex items-center justify-center gap-1.5 py-3.5 min-h-[44px] text-sm text-warm-500 hover:text-warm-700 transition-colors"
+				class="w-full flex items-center justify-center gap-1.5 py-3.5 min-h-[44px] text-sm font-semibold bg-orange-500 text-white hover:bg-orange-600 transition-colors"
 			>
 				<span>{expanded ? 'Zuklappen' : 'Details anzeigen'}</span>
 				<svg
