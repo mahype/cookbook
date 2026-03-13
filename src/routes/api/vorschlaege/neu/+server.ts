@@ -13,21 +13,22 @@ export const POST: RequestHandler = async ({ request }) => {
 	const db = getDb();
 	const today = new Date().toISOString().split('T')[0];
 
-	// Clean up old unapproved suggestions before inserting new ones
-	const oldSuggestions = db
-		.prepare('SELECT recipe_ids FROM daily_suggestions WHERE date != ?')
-		.all(today) as { recipe_ids: string }[];
+	// Clean up ALL old unapproved suggestions (any date, including today)
+	const allSuggestions = db
+		.prepare('SELECT recipe_ids FROM daily_suggestions')
+		.all() as { recipe_ids: string }[];
 
-	const oldRecipeIds = oldSuggestions.flatMap((row) => JSON.parse(row.recipe_ids) as number[]);
+	const allOldRecipeIds = allSuggestions.flatMap((row) => JSON.parse(row.recipe_ids) as number[]);
 
-	if (oldRecipeIds.length > 0) {
-		const placeholders = oldRecipeIds.map(() => '?').join(',');
+	if (allOldRecipeIds.length > 0) {
+		const placeholders = allOldRecipeIds.map(() => '?').join(',');
 		db.prepare(
 			`DELETE FROM recipes WHERE id IN (${placeholders}) AND status = 'vorschlag'`
-		).run(...oldRecipeIds);
+		).run(...allOldRecipeIds);
 	}
 
-	db.prepare('DELETE FROM daily_suggestions WHERE date != ?').run(today);
+	// Clear all old suggestion entries
+	db.prepare('DELETE FROM daily_suggestions').run();
 
 	const insert = db.prepare(`
 		INSERT INTO recipes (name, description, cuisine, cost_estimate, prep_time, difficulty, image_url, ingredients, steps, shopping_tags, store_category, status, pantry_based)
@@ -66,24 +67,11 @@ export const POST: RequestHandler = async ({ request }) => {
 
 	const recipeIds = insertAll();
 
-	// Update or create daily_suggestions for today
-	const existing = db.prepare('SELECT * FROM daily_suggestions WHERE date = ?').get(today) as
-		| { id: number; recipe_ids: string }
-		| undefined;
-
-	if (existing) {
-		const existingIds: number[] = JSON.parse(existing.recipe_ids);
-		const merged = [...existingIds, ...recipeIds];
-		db.prepare('UPDATE daily_suggestions SET recipe_ids = ? WHERE date = ?').run(
-			JSON.stringify(merged),
-			today
-		);
-	} else {
-		db.prepare('INSERT INTO daily_suggestions (date, recipe_ids) VALUES (?, ?)').run(
-			today,
-			JSON.stringify(recipeIds)
-		);
-	}
+	// Create fresh daily_suggestions for today (old ones already cleared above)
+	db.prepare('INSERT INTO daily_suggestions (date, recipe_ids) VALUES (?, ?)').run(
+		today,
+		JSON.stringify(recipeIds)
+	);
 
 	return json({ success: true, count: recipeIds.length, recipe_ids: recipeIds });
 };
