@@ -162,26 +162,26 @@
 	<div>
 		{#if toBuy.length > 0}
 			<h4 class="text-sm font-semibold text-warm-800 mb-3">🛒 Das brauchst du</h4>
-			<ul class="space-y-1">
+			<ul class="space-y-2">
 				{#each toBuy as ingredient (ingredient.name)}
-					<li class="flex items-center justify-between gap-2 py-2">
+					<li class="flex items-center justify-between gap-3 rounded-xl bg-warm-50 px-3 py-2.5">
 						<div class="flex-1 min-w-0">
-							<span class="text-base text-warm-800">{ingredient.name}</span>
-							<span class="text-sm text-warm-400 ml-1">– {ingredient.amount}</span>
-							{#if ingredient.estimated_price}
-								<span class="text-sm text-warm-400 ml-1">— ~{formatPrice(ingredient.estimated_price)} €</span>
-							{/if}
+							<div class="font-semibold text-base text-warm-800">{ingredient.name}</div>
+							<div class="text-sm text-warm-400">
+								{ingredient.amount}
+								<span class="mx-0.5">·</span>
+								<span class="{storeColors[ingredient.store] || 'bg-warm-100 text-warm-500'} px-1.5 py-0.5 rounded-full text-xs">{ingredient.store}</span>
+								{#if ingredient.estimated_price}
+									<span class="mx-0.5">·</span>
+									~{formatPrice(ingredient.estimated_price)} €
+								{/if}
+							</div>
 						</div>
-						<div class="flex items-center gap-2">
-							<span
-								class="text-xs px-2 py-1 rounded-full whitespace-nowrap {storeColors[ingredient.store] || 'bg-warm-100 text-warm-600'}"
-							>
-								{ingredient.store}
-							</span>
+						<div class="flex items-center gap-2 flex-shrink-0">
 							<button
 								onclick={() => addToShoppingList(ingredient)}
 								disabled={addingToCart === ingredient.name}
-								class="w-10 h-10 rounded-full bg-spice-100 text-spice-700 flex items-center justify-center hover:bg-spice-200 transition-colors disabled:opacity-50 flex-shrink-0"
+								class="w-10 h-10 rounded-full bg-spice-100 text-spice-700 flex items-center justify-center hover:bg-spice-200 transition-colors disabled:opacity-50"
 								title="Zur Einkaufsliste hinzufügen"
 							>
 								{#if addingToCart === ingredient.name}
@@ -196,7 +196,7 @@
 								<button
 									onclick={() => requestAddToPantry(ingredient.name)}
 									disabled={addingIngredient === ingredient.name}
-									class="w-10 h-10 rounded-full bg-herb-100 text-herb-700 flex items-center justify-center hover:bg-herb-200 transition-colors disabled:opacity-50 flex-shrink-0"
+									class="w-10 h-10 rounded-full bg-herb-100 text-herb-700 flex items-center justify-center hover:bg-herb-200 transition-colors disabled:opacity-50"
 									title="Zum Vorrat hinzufügen"
 								>
 									{#if addingIngredient === ingredient.name}
@@ -237,24 +237,19 @@
 		{#if atHome.length > 0}
 			<div class="mt-3 pt-3 border-t border-warm-200">
 				<h4 class="text-sm font-semibold text-warm-500 mb-2">🏠 Hast du im Vorrat</h4>
-				<ul class="space-y-1 rounded-xl bg-warm-50 px-3 py-1">
+				<ul class="space-y-2">
 					{#each atHome as ingredient (ingredient.name)}
-						<li class="flex items-center justify-between gap-2 opacity-60 py-2">
+						<li class="flex items-center justify-between gap-3 rounded-xl bg-warm-50 px-3 py-2.5 opacity-60">
 							<div class="flex-1 min-w-0">
-								<span class="text-base text-warm-800">{ingredient.name}</span>
-								<span class="text-sm text-warm-400 ml-1">– {ingredient.amount}</span>
+								<div class="font-semibold text-base text-warm-800">{ingredient.name}</div>
+								<div class="text-sm text-warm-400">{ingredient.amount}</div>
 							</div>
-							<div class="flex items-center gap-2">
-								<span
-									class="text-xs px-2 py-1 rounded-full whitespace-nowrap {storeColors[ingredient.store] || 'bg-warm-100 text-warm-600'}"
-								>
-									{ingredient.store}
-								</span>
+							<div class="flex items-center gap-2 flex-shrink-0">
 								{#if onPantryRemove}
 									<button
 										onclick={() => requestRemoveFromPantry(ingredient.name)}
 										disabled={removingIngredient === ingredient.name}
-										class="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center hover:bg-red-200 transition-colors disabled:opacity-50 flex-shrink-0"
+										class="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center hover:bg-red-200 transition-colors disabled:opacity-50"
 										title="Aus Vorrat entfernen"
 									>
 										{#if removingIngredient === ingredient.name}
