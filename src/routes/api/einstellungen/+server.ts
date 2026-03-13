@@ -5,16 +5,29 @@ import type { RequestHandler } from './$types';
 export const GET: RequestHandler = async () => {
 	const raw = getPreference('cuisine_preferences');
 	const cuisine_preferences: string[] = raw ? JSON.parse(raw) : [];
-	return json({ cuisine_preferences });
+	const recipe_notes = getPreference('recipe_notes') ?? '';
+	return json({ cuisine_preferences, recipe_notes });
 };
 
 export const PUT: RequestHandler = async ({ request }) => {
-	const { cuisine_preferences } = await request.json();
+	const body = await request.json();
 
-	if (!Array.isArray(cuisine_preferences)) {
-		return json({ error: 'cuisine_preferences muss ein Array sein' }, { status: 400 });
+	if ('cuisine_preferences' in body) {
+		if (!Array.isArray(body.cuisine_preferences)) {
+			return json({ error: 'cuisine_preferences muss ein Array sein' }, { status: 400 });
+		}
+		setPreference('cuisine_preferences', JSON.stringify(body.cuisine_preferences));
 	}
 
-	setPreference('cuisine_preferences', JSON.stringify(cuisine_preferences));
-	return json({ cuisine_preferences });
+	if ('recipe_notes' in body) {
+		if (typeof body.recipe_notes !== 'string') {
+			return json({ error: 'recipe_notes muss ein String sein' }, { status: 400 });
+		}
+		setPreference('recipe_notes', body.recipe_notes);
+	}
+
+	const raw = getPreference('cuisine_preferences');
+	const cuisine_preferences: string[] = raw ? JSON.parse(raw) : [];
+	const recipe_notes = getPreference('recipe_notes') ?? '';
+	return json({ cuisine_preferences, recipe_notes });
 };

@@ -442,8 +442,24 @@ if (prefsCount === 0) {
 		'cuisine_preferences',
 		JSON.stringify(defaultPreferences)
 	);
+	const defaultRecipeNotes = 'Ich bevorzuge asiatische und arabische bzw. exotische Küche. Gerne auch Gerichte mit Joghurt. Vor allem gesunde Gerichte sind mir wichtig – ich möchte möglichst viele unterschiedliche gesunde Zutaten in der Woche essen. Abwechslung ist wichtig!';
+	db.prepare('INSERT INTO preferences (key, value) VALUES (?, ?)').run(
+		'recipe_notes',
+		defaultRecipeNotes
+	);
 	console.log(`✓ Küchen-Präferenzen: ${defaultPreferences.join(', ')}`);
+	console.log(`✓ Rezept-Notizen gesetzt`);
 } else {
+	// Insert recipe_notes if it doesn't exist yet (migration for existing databases)
+	const existingNotes = db.prepare('SELECT value FROM preferences WHERE key = ?').get('recipe_notes') as { value: string } | undefined;
+	if (!existingNotes) {
+		const defaultRecipeNotes = 'Ich bevorzuge asiatische und arabische bzw. exotische Küche. Gerne auch Gerichte mit Joghurt. Vor allem gesunde Gerichte sind mir wichtig – ich möchte möglichst viele unterschiedliche gesunde Zutaten in der Woche essen. Abwechslung ist wichtig!';
+		db.prepare('INSERT INTO preferences (key, value) VALUES (?, ?)').run(
+			'recipe_notes',
+			defaultRecipeNotes
+		);
+		console.log(`✓ Rezept-Notizen nachträglich gesetzt`);
+	}
 	console.log(`⏭ Präferenzen bereits vorhanden – übersprungen`);
 }
 

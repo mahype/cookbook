@@ -34,7 +34,9 @@
 	};
 
 	let selected = $state<Set<string>>(new Set(data.cuisinePreferences));
+	let recipeNotes = $state(data.recipeNotes);
 	let saving = $state(false);
+	let savingNotes = $state(false);
 	let message = $state('');
 
 	function toggle(cuisine: string) {
@@ -67,6 +69,28 @@
 			message = 'Netzwerkfehler';
 		} finally {
 			saving = false;
+		}
+	}
+
+	async function saveNotes() {
+		savingNotes = true;
+		message = '';
+		try {
+			const res = await fetch('/api/einstellungen', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ recipe_notes: recipeNotes })
+			});
+			if (res.ok) {
+				message = 'Gespeichert!';
+				setTimeout(() => (message = ''), 2000);
+			} else {
+				message = 'Fehler beim Speichern';
+			}
+		} catch {
+			message = 'Netzwerkfehler';
+		} finally {
+			savingNotes = false;
 		}
 	}
 </script>
@@ -108,6 +132,27 @@
 				</li>
 			{/each}
 		</ul>
+	</div>
+
+	<div class="bg-white rounded-2xl shadow-sm border border-warm-100 overflow-hidden mt-6">
+		<h2 class="px-5 pt-4 pb-2 text-sm font-semibold text-warm-500 uppercase tracking-wide">
+			📝 Deine Wünsche & Präferenzen
+		</h2>
+		<div class="px-5 pb-4">
+			<textarea
+				bind:value={recipeNotes}
+				placeholder="z.B. Ich mag gerne gesunde Gerichte, viel Gemüse, asiatische Küche..."
+				rows="5"
+				class="w-full rounded-xl border border-warm-200 bg-warm-50 px-4 py-3 text-sm text-warm-800 placeholder-warm-400 focus:border-spice-400 focus:ring-2 focus:ring-spice-200 focus:outline-none resize-y"
+			></textarea>
+			<button
+				onclick={saveNotes}
+				disabled={savingNotes}
+				class="mt-3 w-full py-2.5 rounded-xl text-sm font-semibold text-white bg-spice-500 hover:bg-spice-600 active:bg-spice-700 transition-colors disabled:opacity-50"
+			>
+				{savingNotes ? 'Speichert...' : 'Wünsche speichern'}
+			</button>
+		</div>
 	</div>
 
 	{#if message}
