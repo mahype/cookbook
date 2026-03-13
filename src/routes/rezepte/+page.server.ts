@@ -8,12 +8,35 @@ type SortOption = (typeof SORT_OPTIONS)[number];
 
 export const load: PageServerLoad = async ({ url }) => {
 	const db = getDb();
+	const tab = url.searchParams.get('tab') || 'vorschlaege';
 	const cuisine = url.searchParams.get('cuisine');
 	const store = url.searchParams.get('store');
 	const maxTime = url.searchParams.get('maxTime');
 	const sort = (url.searchParams.get('sort') as SortOption) || 'newest';
 	const validSort = SORT_OPTIONS.includes(sort) ? sort : 'newest';
 
+	const pantryItems = getPantryItems();
+	const pantryNames = pantryItems.map((p) => p.name.toLowerCase());
+
+	// --- Vorschläge data ---
+	const today = new Date().toISOString().split('T')[0];
+	const suggestion = db.prepare('SELECT * FROM daily_suggestions WHERE date = ?').get(today) as
+		| { id: number; date: string; recipe_ids: string }
+		| undefined;
+
+	let suggestionRecipes: Recipe[] = [];
+	if (suggestion) {
+		const recipeIds: number[] = JSON.parse(suggestion.recipe_ids);
+		if (recipeIds.length > 0) {
+			const placeholders = recipeIds.map(() => '?').join(',');
+			const rows = db
+				.prepare(`SELECT * FROM recipes WHERE id IN (${placeholders}) ORDER BY pantry_based DESC`)
+				.all(...recipeIds) as RecipeRow[];
+			suggestionRecipes = rows.map(parseRecipe);
+		}
+	}
+
+	// --- Gespeichert (approved recipes) data ---
 	let query = 'SELECT * FROM recipes WHERE status = ?';
 	const params: (string | number)[] = ['approved'];
 
@@ -44,9 +67,6 @@ export const load: PageServerLoad = async ({ url }) => {
 	const rows = db.prepare(query).all(...params) as RecipeRow[];
 	let recipes = rows.map(parseRecipe);
 
-	const pantryItems = getPantryItems();
-	const pantryNames = pantryItems.map((p) => p.name.toLowerCase());
-
 	// JS-level sorts that need parsed ingredients
 	if (validSort === 'simplest') {
 		recipes.sort((a, b) => a.ingredients.length - b.ingredients.length);
@@ -73,6 +93,9 @@ export const load: PageServerLoad = async ({ url }) => {
 		.all() as { store_category: string }[];
 
 	return {
+		tab,
+		date: today,
+		suggestionRecipes,
 		recipes,
 		pantryNames,
 		sort: validSort,

@@ -2,8 +2,11 @@ import { json } from '@sveltejs/kit';
 import { getDb, getPantryItems } from '$lib/server/db';
 import type { RequestHandler } from './$types';
 
-export const GET: RequestHandler = async () => {
+export const GET: RequestHandler = async ({ url }) => {
 	const items = getPantryItems();
+	if (url.searchParams.get('full') === 'true') {
+		return json({ items });
+	}
 	return json({ items: items.map((i) => i.name) });
 };
 
