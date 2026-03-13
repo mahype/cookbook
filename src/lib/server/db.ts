@@ -53,6 +53,17 @@ function initDb(db: Database.Database) {
 			key TEXT NOT NULL UNIQUE,
 			value TEXT NOT NULL DEFAULT ''
 		);
+
+		CREATE TABLE IF NOT EXISTS shopping_list (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			ingredient_name TEXT NOT NULL,
+			ingredient_amount TEXT NOT NULL,
+			recipe_name TEXT NOT NULL,
+			store TEXT DEFAULT '',
+			estimated_price REAL DEFAULT 0,
+			checked INTEGER DEFAULT 0,
+			created_at TEXT NOT NULL DEFAULT (datetime('now'))
+		);
 	`);
 
 	// Add pantry_based column if it doesn't exist
@@ -66,6 +77,7 @@ export type Ingredient = {
 	name: string;
 	amount: string;
 	store: 'Discounter' | 'Supermarkt' | 'Gemüsehändler' | 'Asia-Laden' | 'Theke';
+	estimated_price?: number;
 };
 
 export type Recipe = {

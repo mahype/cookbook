@@ -8,10 +8,9 @@ mkdirSync(resolve('data'), { recursive: true });
 const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 
+// Only drop and recreate recipe-related tables (safe to reset)
 db.exec(`
 	DROP TABLE IF EXISTS daily_suggestions;
-	DROP TABLE IF EXISTS pantry;
-	DROP TABLE IF EXISTS preferences;
 	DROP TABLE IF EXISTS recipes;
 
 	CREATE TABLE recipes (
@@ -39,16 +38,27 @@ db.exec(`
 		created_at TEXT NOT NULL DEFAULT (datetime('now'))
 	);
 
-	CREATE TABLE pantry (
+	CREATE TABLE IF NOT EXISTS pantry (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		name TEXT NOT NULL UNIQUE,
 		created_at TEXT NOT NULL DEFAULT (datetime('now'))
 	);
 
-	CREATE TABLE preferences (
+	CREATE TABLE IF NOT EXISTS preferences (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		key TEXT NOT NULL UNIQUE,
 		value TEXT NOT NULL DEFAULT ''
+	);
+
+	CREATE TABLE IF NOT EXISTS shopping_list (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		ingredient_name TEXT NOT NULL,
+		ingredient_amount TEXT NOT NULL,
+		recipe_name TEXT NOT NULL,
+		store TEXT DEFAULT '',
+		estimated_price REAL DEFAULT 0,
+		checked INTEGER DEFAULT 0,
+		created_at TEXT NOT NULL DEFAULT (datetime('now'))
 	);
 `);
 
@@ -56,6 +66,7 @@ type Ingredient = {
 	name: string;
 	amount: string;
 	store: string;
+	estimated_price: number;
 };
 
 type RecipeSeed = {
@@ -77,20 +88,20 @@ const recipes: RecipeSeed[] = [
 		name: 'Gebratene Nudeln mit Gemüse',
 		description: 'Schnelle Asia-Nudeln mit knackigem Gemüse und würziger Sojasauce – in 20 Minuten fertig.',
 		cuisine: 'Asiatisch',
-		cost_estimate: 5.50,
+		cost_estimate: 5.47,
 		prep_time: 20,
 		difficulty: 'Einfach',
 		image_url: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=800&q=80',
 		ingredients: [
-			{ name: 'Mie-Nudeln', amount: '250g', store: 'Asia-Laden' },
-			{ name: 'Möhren', amount: '2 Stück', store: 'Discounter' },
-			{ name: 'Paprika rot', amount: '1 Stück', store: 'Discounter' },
-			{ name: 'Zucchini', amount: '1 kleine', store: 'Gemüsehändler' },
-			{ name: 'Frühlingszwiebeln', amount: '1 Bund', store: 'Gemüsehändler' },
-			{ name: 'Sojasauce', amount: '3 EL', store: 'Asia-Laden' },
-			{ name: 'Sesamöl', amount: '1 EL', store: 'Asia-Laden' },
-			{ name: 'Knoblauch', amount: '2 Zehen', store: 'Discounter' },
-			{ name: 'Ingwer', amount: '1 daumengroßes Stück', store: 'Gemüsehändler' }
+			{ name: 'Mie-Nudeln', amount: '250g', store: 'Asia-Laden', estimated_price: 1.29 },
+			{ name: 'Möhren', amount: '2 Stück', store: 'Discounter', estimated_price: 0.40 },
+			{ name: 'Paprika rot', amount: '1 Stück', store: 'Discounter', estimated_price: 0.80 },
+			{ name: 'Zucchini', amount: '1 kleine', store: 'Gemüsehändler', estimated_price: 0.79 },
+			{ name: 'Frühlingszwiebeln', amount: '1 Bund', store: 'Gemüsehändler', estimated_price: 0.69 },
+			{ name: 'Sojasauce', amount: '3 EL', store: 'Asia-Laden', estimated_price: 0.50 },
+			{ name: 'Sesamöl', amount: '1 EL', store: 'Asia-Laden', estimated_price: 0.40 },
+			{ name: 'Knoblauch', amount: '2 Zehen', store: 'Discounter', estimated_price: 0.30 },
+			{ name: 'Ingwer', amount: '1 daumengroßes Stück', store: 'Gemüsehändler', estimated_price: 0.30 }
 		],
 		steps: [
 			'Nudeln nach Packungsanleitung kochen, abgießen und beiseite stellen.',
@@ -108,19 +119,19 @@ const recipes: RecipeSeed[] = [
 		name: 'Klassisches Kartoffelgratin',
 		description: 'Cremiges Kartoffelgratin mit goldbrauner Käsekruste – der deutsche Klassiker für gemütliche Abende.',
 		cuisine: 'Deutsch',
-		cost_estimate: 6.00,
+		cost_estimate: 4.87,
 		prep_time: 60,
 		difficulty: 'Einfach',
 		image_url: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=800&q=80',
 		ingredients: [
-			{ name: 'Festkochende Kartoffeln', amount: '800g', store: 'Discounter' },
-			{ name: 'Sahne', amount: '200ml', store: 'Discounter' },
-			{ name: 'Milch', amount: '100ml', store: 'Discounter' },
-			{ name: 'Geriebener Emmentaler', amount: '150g', store: 'Supermarkt' },
-			{ name: 'Knoblauch', amount: '2 Zehen', store: 'Discounter' },
-			{ name: 'Butter', amount: '20g', store: 'Discounter' },
-			{ name: 'Muskatnuss', amount: '1 Prise', store: 'Discounter' },
-			{ name: 'Salz & Pfeffer', amount: 'nach Geschmack', store: 'Discounter' }
+			{ name: 'Festkochende Kartoffeln', amount: '800g', store: 'Discounter', estimated_price: 1.29 },
+			{ name: 'Sahne', amount: '200ml', store: 'Discounter', estimated_price: 0.79 },
+			{ name: 'Milch', amount: '100ml', store: 'Discounter', estimated_price: 0.25 },
+			{ name: 'Geriebener Emmentaler', amount: '150g', store: 'Supermarkt', estimated_price: 1.99 },
+			{ name: 'Knoblauch', amount: '2 Zehen', store: 'Discounter', estimated_price: 0.30 },
+			{ name: 'Butter', amount: '20g', store: 'Discounter', estimated_price: 0.15 },
+			{ name: 'Muskatnuss', amount: '1 Prise', store: 'Discounter', estimated_price: 0.10 },
+			{ name: 'Salz & Pfeffer', amount: 'nach Geschmack', store: 'Discounter', estimated_price: 0 }
 		],
 		steps: [
 			'Backofen auf 180°C Ober-/Unterhitze vorheizen.',
@@ -139,23 +150,23 @@ const recipes: RecipeSeed[] = [
 		name: 'Pad Thai',
 		description: 'Authentisches Thai-Nudelgericht mit Garnelen, Erdnüssen und Limette – süß-sauer-würzig.',
 		cuisine: 'Asiatisch',
-		cost_estimate: 9.50,
+		cost_estimate: 9.64,
 		prep_time: 30,
 		difficulty: 'Mittel',
 		image_url: 'https://images.unsplash.com/photo-1559314809-0d155014e29e?w=800&q=80',
 		ingredients: [
-			{ name: 'Reisnudeln (breit)', amount: '200g', store: 'Asia-Laden' },
-			{ name: 'Garnelen (TK, geschält)', amount: '200g', store: 'Supermarkt' },
-			{ name: 'Eier', amount: '2 Stück', store: 'Discounter' },
-			{ name: 'Sojasprossen', amount: '100g', store: 'Asia-Laden' },
-			{ name: 'Frühlingszwiebeln', amount: '3 Stück', store: 'Gemüsehändler' },
-			{ name: 'Erdnüsse (ungesalzen)', amount: '50g', store: 'Discounter' },
-			{ name: 'Limette', amount: '1 Stück', store: 'Gemüsehändler' },
-			{ name: 'Fischsauce', amount: '2 EL', store: 'Asia-Laden' },
-			{ name: 'Tamarindenpaste', amount: '1 EL', store: 'Asia-Laden' },
-			{ name: 'Zucker', amount: '1 EL', store: 'Discounter' },
-			{ name: 'Knoblauch', amount: '2 Zehen', store: 'Discounter' },
-			{ name: 'Pflanzenöl', amount: '2 EL', store: 'Discounter' }
+			{ name: 'Reisnudeln (breit)', amount: '200g', store: 'Asia-Laden', estimated_price: 1.49 },
+			{ name: 'Garnelen (TK, geschält)', amount: '200g', store: 'Supermarkt', estimated_price: 3.99 },
+			{ name: 'Eier', amount: '2 Stück', store: 'Discounter', estimated_price: 0.40 },
+			{ name: 'Sojasprossen', amount: '100g', store: 'Asia-Laden', estimated_price: 0.99 },
+			{ name: 'Frühlingszwiebeln', amount: '3 Stück', store: 'Gemüsehändler', estimated_price: 0.69 },
+			{ name: 'Erdnüsse (ungesalzen)', amount: '50g', store: 'Discounter', estimated_price: 0.59 },
+			{ name: 'Limette', amount: '1 Stück', store: 'Gemüsehändler', estimated_price: 0.49 },
+			{ name: 'Fischsauce', amount: '2 EL', store: 'Asia-Laden', estimated_price: 0.30 },
+			{ name: 'Tamarindenpaste', amount: '1 EL', store: 'Asia-Laden', estimated_price: 0.40 },
+			{ name: 'Zucker', amount: '1 EL', store: 'Discounter', estimated_price: 0 },
+			{ name: 'Knoblauch', amount: '2 Zehen', store: 'Discounter', estimated_price: 0.30 },
+			{ name: 'Pflanzenöl', amount: '2 EL', store: 'Discounter', estimated_price: 0 }
 		],
 		steps: [
 			'Reisnudeln 10 Minuten in warmem Wasser einweichen, dann abgießen.',
@@ -173,20 +184,20 @@ const recipes: RecipeSeed[] = [
 		name: 'Linsensuppe mit Würstchen',
 		description: 'Herzhafte deutsche Linsensuppe mit Kartoffeln und Wiener Würstchen – wärmt von innen.',
 		cuisine: 'Deutsch',
-		cost_estimate: 5.00,
+		cost_estimate: 5.36,
 		prep_time: 45,
 		difficulty: 'Einfach',
 		image_url: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=800&q=80',
 		ingredients: [
-			{ name: 'Braune Tellerlinsen', amount: '250g', store: 'Discounter' },
-			{ name: 'Kartoffeln', amount: '300g', store: 'Discounter' },
-			{ name: 'Möhren', amount: '2 Stück', store: 'Discounter' },
-			{ name: 'Lauch', amount: '1 Stange', store: 'Gemüsehändler' },
-			{ name: 'Wiener Würstchen', amount: '4 Stück', store: 'Supermarkt' },
-			{ name: 'Gemüsebrühe', amount: '1 Liter', store: 'Discounter' },
-			{ name: 'Essig', amount: '1 EL', store: 'Discounter' },
-			{ name: 'Lorbeerblatt', amount: '1 Stück', store: 'Discounter' },
-			{ name: 'Salz & Pfeffer', amount: 'nach Geschmack', store: 'Discounter' }
+			{ name: 'Braune Tellerlinsen', amount: '250g', store: 'Discounter', estimated_price: 1.29 },
+			{ name: 'Kartoffeln', amount: '300g', store: 'Discounter', estimated_price: 0.49 },
+			{ name: 'Möhren', amount: '2 Stück', store: 'Discounter', estimated_price: 0.40 },
+			{ name: 'Lauch', amount: '1 Stange', store: 'Gemüsehändler', estimated_price: 0.99 },
+			{ name: 'Wiener Würstchen', amount: '4 Stück', store: 'Supermarkt', estimated_price: 1.79 },
+			{ name: 'Gemüsebrühe', amount: '1 Liter', store: 'Discounter', estimated_price: 0.30 },
+			{ name: 'Essig', amount: '1 EL', store: 'Discounter', estimated_price: 0 },
+			{ name: 'Lorbeerblatt', amount: '1 Stück', store: 'Discounter', estimated_price: 0.10 },
+			{ name: 'Salz & Pfeffer', amount: 'nach Geschmack', store: 'Discounter', estimated_price: 0 }
 		],
 		steps: [
 			'Linsen abspülen und abtropfen lassen.',
@@ -204,20 +215,20 @@ const recipes: RecipeSeed[] = [
 		name: 'Chicken Teriyaki mit Reis',
 		description: 'Saftige Hähnchenschenkel in glänzender Teriyaki-Sauce auf duftendem Jasminreis.',
 		cuisine: 'Asiatisch',
-		cost_estimate: 7.50,
+		cost_estimate: 7.68,
 		prep_time: 25,
 		difficulty: 'Einfach',
 		image_url: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=800&q=80',
 		ingredients: [
-			{ name: 'Hähnchenbrust', amount: '300g (Theke)', store: 'Theke' },
-			{ name: 'Jasminreis', amount: '200g', store: 'Asia-Laden' },
-			{ name: 'Sojasauce', amount: '4 EL', store: 'Asia-Laden' },
-			{ name: 'Mirin', amount: '2 EL', store: 'Asia-Laden' },
-			{ name: 'Honig', amount: '1 EL', store: 'Discounter' },
-			{ name: 'Ingwer', amount: '1 TL gerieben', store: 'Gemüsehändler' },
-			{ name: 'Sesamkörner', amount: '1 EL', store: 'Asia-Laden' },
-			{ name: 'Brokkoli', amount: '200g', store: 'Gemüsehändler' },
-			{ name: 'Pflanzenöl', amount: '1 EL', store: 'Discounter' }
+			{ name: 'Hähnchenbrust', amount: '300g', store: 'Theke', estimated_price: 3.50 },
+			{ name: 'Jasminreis', amount: '200g', store: 'Asia-Laden', estimated_price: 0.89 },
+			{ name: 'Sojasauce', amount: '4 EL', store: 'Asia-Laden', estimated_price: 0.60 },
+			{ name: 'Mirin', amount: '2 EL', store: 'Asia-Laden', estimated_price: 0.50 },
+			{ name: 'Honig', amount: '1 EL', store: 'Discounter', estimated_price: 0.20 },
+			{ name: 'Ingwer', amount: '1 TL gerieben', store: 'Gemüsehändler', estimated_price: 0.30 },
+			{ name: 'Sesamkörner', amount: '1 EL', store: 'Asia-Laden', estimated_price: 0.20 },
+			{ name: 'Brokkoli', amount: '200g', store: 'Gemüsehändler', estimated_price: 1.49 },
+			{ name: 'Pflanzenöl', amount: '1 EL', store: 'Discounter', estimated_price: 0 }
 		],
 		steps: [
 			'Reis nach Packungsanleitung kochen.',
@@ -235,17 +246,17 @@ const recipes: RecipeSeed[] = [
 		name: 'Flammkuchen Elsässer Art',
 		description: 'Knuspriger Flammkuchen mit Crème fraîche, Speck und Zwiebeln – schnell gemacht und unwiderstehlich.',
 		cuisine: 'Deutsch',
-		cost_estimate: 5.50,
+		cost_estimate: 4.47,
 		prep_time: 30,
 		difficulty: 'Einfach',
 		image_url: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&q=80',
 		ingredients: [
-			{ name: 'Fertiger Flammkuchenteig', amount: '1 Packung (ca. 270g)', store: 'Supermarkt' },
-			{ name: 'Crème fraîche', amount: '200g', store: 'Discounter' },
-			{ name: 'Speckwürfel (geräuchert)', amount: '150g', store: 'Supermarkt' },
-			{ name: 'Zwiebeln', amount: '2 große', store: 'Discounter' },
-			{ name: 'Salz & Pfeffer', amount: 'nach Geschmack', store: 'Discounter' },
-			{ name: 'Muskatnuss', amount: '1 Prise', store: 'Discounter' }
+			{ name: 'Fertiger Flammkuchenteig', amount: '1 Packung (ca. 270g)', store: 'Supermarkt', estimated_price: 1.49 },
+			{ name: 'Crème fraîche', amount: '200g', store: 'Discounter', estimated_price: 0.89 },
+			{ name: 'Speckwürfel (geräuchert)', amount: '150g', store: 'Supermarkt', estimated_price: 1.69 },
+			{ name: 'Zwiebeln', amount: '2 große', store: 'Discounter', estimated_price: 0.30 },
+			{ name: 'Salz & Pfeffer', amount: 'nach Geschmack', store: 'Discounter', estimated_price: 0 },
+			{ name: 'Muskatnuss', amount: '1 Prise', store: 'Discounter', estimated_price: 0.10 }
 		],
 		steps: [
 			'Backofen auf 220°C Ober-/Unterhitze vorheizen (oder höchste Stufe).',
@@ -263,21 +274,21 @@ const recipes: RecipeSeed[] = [
 		name: 'Rotes Thai-Curry mit Tofu',
 		description: 'Cremiges Kokosnuss-Curry mit knusprigem Tofu, Paprika und Thai-Basilikum – vegan und aromatisch.',
 		cuisine: 'Asiatisch',
-		cost_estimate: 7.00,
+		cost_estimate: 9.54,
 		prep_time: 30,
 		difficulty: 'Einfach',
 		image_url: 'https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?w=800&q=80',
 		ingredients: [
-			{ name: 'Fester Tofu', amount: '300g', store: 'Supermarkt' },
-			{ name: 'Kokosmilch', amount: '1 Dose (400ml)', store: 'Asia-Laden' },
-			{ name: 'Rote Currypaste', amount: '2 EL', store: 'Asia-Laden' },
-			{ name: 'Paprika rot', amount: '1 Stück', store: 'Discounter' },
-			{ name: 'Zuckerschoten', amount: '100g', store: 'Gemüsehändler' },
-			{ name: 'Bambussprossen', amount: '1 kleine Dose', store: 'Asia-Laden' },
-			{ name: 'Jasminreis', amount: '200g', store: 'Asia-Laden' },
-			{ name: 'Fischsauce (oder Sojasauce)', amount: '1 EL', store: 'Asia-Laden' },
-			{ name: 'Zucker', amount: '1 TL', store: 'Discounter' },
-			{ name: 'Thai-Basilikum', amount: '1 Handvoll', store: 'Asia-Laden' }
+			{ name: 'Fester Tofu', amount: '300g', store: 'Supermarkt', estimated_price: 1.99 },
+			{ name: 'Kokosmilch', amount: '1 Dose (400ml)', store: 'Asia-Laden', estimated_price: 1.49 },
+			{ name: 'Rote Currypaste', amount: '2 EL', store: 'Asia-Laden', estimated_price: 0.60 },
+			{ name: 'Paprika rot', amount: '1 Stück', store: 'Discounter', estimated_price: 0.80 },
+			{ name: 'Zuckerschoten', amount: '100g', store: 'Gemüsehändler', estimated_price: 1.29 },
+			{ name: 'Bambussprossen', amount: '1 kleine Dose', store: 'Asia-Laden', estimated_price: 0.99 },
+			{ name: 'Jasminreis', amount: '200g', store: 'Asia-Laden', estimated_price: 0.89 },
+			{ name: 'Fischsauce (oder Sojasauce)', amount: '1 EL', store: 'Asia-Laden', estimated_price: 0.20 },
+			{ name: 'Zucker', amount: '1 TL', store: 'Discounter', estimated_price: 0 },
+			{ name: 'Thai-Basilikum', amount: '1 Handvoll', store: 'Asia-Laden', estimated_price: 1.29 }
 		],
 		steps: [
 			'Reis nach Packungsanleitung kochen.',
@@ -296,17 +307,17 @@ const recipes: RecipeSeed[] = [
 		name: 'Käsespätzle',
 		description: 'Schwäbische Käsespätzle mit karamellisierten Röstzwiebeln – echtes Comfort Food.',
 		cuisine: 'Deutsch',
-		cost_estimate: 6.50,
+		cost_estimate: 5.82,
 		prep_time: 40,
 		difficulty: 'Mittel',
 		image_url: 'https://images.unsplash.com/photo-1595295333158-4742f28fbd85?w=800&q=80',
 		ingredients: [
-			{ name: 'Spätzle (frisch oder getrocknet)', amount: '400g', store: 'Supermarkt' },
-			{ name: 'Emmentaler (gerieben)', amount: '200g', store: 'Supermarkt' },
-			{ name: 'Zwiebeln', amount: '3 große', store: 'Discounter' },
-			{ name: 'Butter', amount: '40g', store: 'Discounter' },
-			{ name: 'Salz & Pfeffer', amount: 'nach Geschmack', store: 'Discounter' },
-			{ name: 'Schnittlauch', amount: '1 Bund', store: 'Gemüsehändler' }
+			{ name: 'Spätzle (frisch oder getrocknet)', amount: '400g', store: 'Supermarkt', estimated_price: 1.99 },
+			{ name: 'Emmentaler (gerieben)', amount: '200g', store: 'Supermarkt', estimated_price: 2.29 },
+			{ name: 'Zwiebeln', amount: '3 große', store: 'Discounter', estimated_price: 0.45 },
+			{ name: 'Butter', amount: '40g', store: 'Discounter', estimated_price: 0.30 },
+			{ name: 'Salz & Pfeffer', amount: 'nach Geschmack', store: 'Discounter', estimated_price: 0 },
+			{ name: 'Schnittlauch', amount: '1 Bund', store: 'Gemüsehändler', estimated_price: 0.79 }
 		],
 		steps: [
 			'Zwiebeln in dünne Ringe schneiden und in 20g Butter bei mittlerer Hitze langsam goldbraun rösten (ca. 15 Min). Beiseite stellen.',
@@ -324,19 +335,19 @@ const recipes: RecipeSeed[] = [
 		name: 'Japanische Miso-Suppe mit Udon',
 		description: 'Wärmende Miso-Suppe mit dicken Udon-Nudeln, Tofu und Wakame – leicht und umami-reich.',
 		cuisine: 'Asiatisch',
-		cost_estimate: 6.00,
+		cost_estimate: 5.77,
 		prep_time: 20,
 		difficulty: 'Einfach',
 		image_url: 'https://images.unsplash.com/photo-1553621042-f6e147245754?w=800&q=80',
 		ingredients: [
-			{ name: 'Udon-Nudeln', amount: '200g', store: 'Asia-Laden' },
-			{ name: 'Miso-Paste (hell)', amount: '3 EL', store: 'Asia-Laden' },
-			{ name: 'Seidentofu', amount: '150g', store: 'Asia-Laden' },
-			{ name: 'Wakame (getrocknet)', amount: '1 EL', store: 'Asia-Laden' },
-			{ name: 'Frühlingszwiebeln', amount: '2 Stück', store: 'Gemüsehändler' },
-			{ name: 'Dashi-Granulat', amount: '1 TL', store: 'Asia-Laden' },
-			{ name: 'Sojasauce', amount: '1 EL', store: 'Asia-Laden' },
-			{ name: 'Sesamöl', amount: '1 TL', store: 'Asia-Laden' }
+			{ name: 'Udon-Nudeln', amount: '200g', store: 'Asia-Laden', estimated_price: 1.79 },
+			{ name: 'Miso-Paste (hell)', amount: '3 EL', store: 'Asia-Laden', estimated_price: 0.90 },
+			{ name: 'Seidentofu', amount: '150g', store: 'Asia-Laden', estimated_price: 1.49 },
+			{ name: 'Wakame (getrocknet)', amount: '1 EL', store: 'Asia-Laden', estimated_price: 0.40 },
+			{ name: 'Frühlingszwiebeln', amount: '2 Stück', store: 'Gemüsehändler', estimated_price: 0.49 },
+			{ name: 'Dashi-Granulat', amount: '1 TL', store: 'Asia-Laden', estimated_price: 0.30 },
+			{ name: 'Sojasauce', amount: '1 EL', store: 'Asia-Laden', estimated_price: 0.20 },
+			{ name: 'Sesamöl', amount: '1 TL', store: 'Asia-Laden', estimated_price: 0.20 }
 		],
 		steps: [
 			'800ml Wasser mit Dashi-Granulat aufkochen.',
@@ -354,19 +365,19 @@ const recipes: RecipeSeed[] = [
 		name: 'Bauernfrühstück',
 		description: 'Rustikales Pfannengericht mit Bratkartoffeln, Speck und Ei – schnell, günstig und sättigend.',
 		cuisine: 'Deutsch',
-		cost_estimate: 4.50,
+		cost_estimate: 4.61,
 		prep_time: 30,
 		difficulty: 'Einfach',
 		image_url: 'https://images.unsplash.com/photo-1513442542250-854d436a73f2?w=800&q=80',
 		ingredients: [
-			{ name: 'Festkochende Kartoffeln', amount: '500g', store: 'Discounter' },
-			{ name: 'Eier', amount: '4 Stück', store: 'Discounter' },
-			{ name: 'Speckwürfel', amount: '100g', store: 'Supermarkt' },
-			{ name: 'Zwiebel', amount: '1 große', store: 'Discounter' },
-			{ name: 'Schnittlauch', amount: '1 Bund', store: 'Gemüsehändler' },
-			{ name: 'Butter oder Butterschmalz', amount: '2 EL', store: 'Discounter' },
-			{ name: 'Salz & Pfeffer', amount: 'nach Geschmack', store: 'Discounter' },
-			{ name: 'Gewürzgurken', amount: '2-3 Stück (Beilage)', store: 'Discounter' }
+			{ name: 'Festkochende Kartoffeln', amount: '500g', store: 'Discounter', estimated_price: 0.79 },
+			{ name: 'Eier', amount: '4 Stück', store: 'Discounter', estimated_price: 0.80 },
+			{ name: 'Speckwürfel', amount: '100g', store: 'Supermarkt', estimated_price: 1.19 },
+			{ name: 'Zwiebel', amount: '1 große', store: 'Discounter', estimated_price: 0.15 },
+			{ name: 'Schnittlauch', amount: '1 Bund', store: 'Gemüsehändler', estimated_price: 0.79 },
+			{ name: 'Butter oder Butterschmalz', amount: '2 EL', store: 'Discounter', estimated_price: 0.20 },
+			{ name: 'Salz & Pfeffer', amount: 'nach Geschmack', store: 'Discounter', estimated_price: 0 },
+			{ name: 'Gewürzgurken', amount: '2-3 Stück (Beilage)', store: 'Discounter', estimated_price: 0.69 }
 		],
 		steps: [
 			'Kartoffeln schälen, in dünne Scheiben schneiden und 10 Minuten in Salzwasser vorkochen. Abgießen.',
@@ -410,22 +421,34 @@ db.prepare('INSERT INTO daily_suggestions (date, recipe_ids) VALUES (?, ?)').run
 	JSON.stringify(ids)
 );
 
+// Only insert default pantry items if the table is empty
+const pantryCount = (db.prepare('SELECT COUNT(*) as count FROM pantry').get() as { count: number }).count;
 const pantryDefaults = ['Salz', 'Pfeffer', 'Olivenöl', 'Sonnenblumenöl', 'Zucker', 'Mehl', 'Butter'];
-const insertPantry = db.prepare('INSERT INTO pantry (name) VALUES (?)');
-for (const item of pantryDefaults) {
-	insertPantry.run(item);
+if (pantryCount === 0) {
+	const insertPantry = db.prepare('INSERT INTO pantry (name) VALUES (?)');
+	for (const item of pantryDefaults) {
+		insertPantry.run(item);
+	}
+	console.log(`✓ ${pantryDefaults.length} Vorrats-Artikel eingefügt`);
+} else {
+	console.log(`⏭ Vorrat hat bereits ${pantryCount} Einträge – übersprungen`);
 }
 
+// Only insert default preferences if the table is empty
+const prefsCount = (db.prepare('SELECT COUNT(*) as count FROM preferences').get() as { count: number }).count;
 const defaultPreferences = ['Asiatisch', 'Deutsch', 'Italienisch'];
-db.prepare('INSERT INTO preferences (key, value) VALUES (?, ?)').run(
-	'cuisine_preferences',
-	JSON.stringify(defaultPreferences)
-);
+if (prefsCount === 0) {
+	db.prepare('INSERT INTO preferences (key, value) VALUES (?, ?)').run(
+		'cuisine_preferences',
+		JSON.stringify(defaultPreferences)
+	);
+	console.log(`✓ Küchen-Präferenzen: ${defaultPreferences.join(', ')}`);
+} else {
+	console.log(`⏭ Präferenzen bereits vorhanden – übersprungen`);
+}
 
 console.log(`✓ ${recipes.length} Rezepte eingefügt`);
 console.log(`✓ Tagesvorschläge für ${today} erstellt`);
 console.log(`  Rezept-IDs: ${ids.join(', ')}`);
-console.log(`✓ ${pantryDefaults.length} Vorrats-Artikel eingefügt`);
-console.log(`✓ Küchen-Präferenzen: ${defaultPreferences.join(', ')}`);
 
 db.close();

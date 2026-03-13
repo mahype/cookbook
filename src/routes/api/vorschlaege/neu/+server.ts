@@ -21,6 +21,14 @@ export const POST: RequestHandler = async ({ request }) => {
 	const insertAll = db.transaction(() => {
 		const ids: number[] = [];
 		for (const recipe of recipes) {
+			// Ensure estimated_price is preserved in ingredient data
+			const ingredients = (recipe.ingredients || []).map((ing: Record<string, unknown>) => ({
+				name: ing.name,
+				amount: ing.amount,
+				store: ing.store || '',
+				...(ing.estimated_price != null ? { estimated_price: ing.estimated_price } : {})
+			}));
+
 			const result = insert.run({
 				name: recipe.name,
 				description: recipe.description,
@@ -29,7 +37,7 @@ export const POST: RequestHandler = async ({ request }) => {
 				prep_time: recipe.prep_time,
 				difficulty: recipe.difficulty,
 				image_url: recipe.image_url || '',
-				ingredients: JSON.stringify(recipe.ingredients || []),
+				ingredients: JSON.stringify(ingredients),
 				steps: JSON.stringify(recipe.steps || []),
 				shopping_tags: JSON.stringify(recipe.shopping_tags || []),
 				store_category: recipe.store_category || ''
