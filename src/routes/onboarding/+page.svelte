@@ -241,6 +241,17 @@
 				});
 			}
 
+			// Mark onboarding as completed
+			if (isCapacitor()) {
+				await savePreference('onboardingCompleted', '1');
+			} else {
+				await fetch('/api/einstellungen', {
+					method: 'PUT',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ onboarding_completed: true })
+				});
+			}
+
 			goto('/rezepte');
 		} catch {
 			saving = false;
@@ -536,7 +547,18 @@
 				Weiter
 			</button>
 			<button
-				onclick={() => goto('/rezepte')}
+				onclick={async () => {
+					if (isCapacitor()) {
+						await savePreference('onboardingCompleted', '1');
+					} else {
+						await fetch('/api/einstellungen', {
+							method: 'PUT',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ onboarding_completed: true })
+						});
+					}
+					goto('/rezepte');
+				}}
 				class="w-full py-3 text-sm text-warm-400 hover:text-warm-600 transition-colors min-h-[44px]"
 			>
 				Überspringen

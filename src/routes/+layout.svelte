@@ -32,12 +32,17 @@
 	async function checkOnboarding(): Promise<boolean> {
 		try {
 			if (isCapacitor()) {
+				const { loadPreference } = await import('$lib/stores/data');
+				const completed = await loadPreference('onboardingCompleted');
+				if (completed === '1') return false;
+				// Fallback: also check if AI provider is configured (pre-flag users)
 				const prefs = await loadPreferences();
 				return !prefs.aiProvider || !prefs.aiProvider.id;
 			} else {
 				const res = await fetch('/api/einstellungen');
 				if (res.ok) {
 					const data = await res.json();
+					if (data.onboardingCompleted) return false;
 					if (!data.aiProvider || !data.aiProvider.id) return true;
 				}
 				return false;

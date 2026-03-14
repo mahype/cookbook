@@ -20,7 +20,8 @@ export const GET: RequestHandler = async () => {
 	const default_servings = parseInt(getPreference('default_servings') ?? '2', 10);
 	const ai_provider = JSON.parse(getPreference('ai_provider') ?? 'null');
 	const health_conditions = JSON.parse(getPreference('health_conditions') ?? '[]');
-	return json({ cuisine_preferences, recipe_notes, default_servings, ai_provider, healthConditions: health_conditions });
+	const onboarding_completed = getPreference('onboarding_completed') === '1';
+	return json({ cuisine_preferences, recipe_notes, default_servings, ai_provider, healthConditions: health_conditions, onboardingCompleted: onboarding_completed });
 };
 
 export const PUT: RequestHandler = async ({ request }) => {
@@ -55,6 +56,10 @@ export const PUT: RequestHandler = async ({ request }) => {
 		setPreference('recipe_notes', body.recipe_notes);
 	}
 
+	if ('onboarding_completed' in body) {
+		setPreference('onboarding_completed', body.onboarding_completed ? '1' : '0');
+	}
+
 	if ('health_conditions' in body) {
 		if (Array.isArray(body.health_conditions)) {
 			setPreference('health_conditions', JSON.stringify(body.health_conditions));
@@ -78,5 +83,6 @@ export const PUT: RequestHandler = async ({ request }) => {
 	const default_servings = parseInt(getPreference('default_servings') ?? '2', 10);
 	const ai_provider = JSON.parse(getPreference('ai_provider') ?? 'null');
 	const health_conditions = JSON.parse(getPreference('health_conditions') ?? '[]');
-	return json({ cuisine_preferences, recipe_notes, default_servings, ai_provider, healthConditions: health_conditions });
+	const onboarding_completed = getPreference('onboarding_completed') === '1';
+	return json({ cuisine_preferences, recipe_notes, default_servings, ai_provider, healthConditions: health_conditions, onboardingCompleted: onboarding_completed });
 };
