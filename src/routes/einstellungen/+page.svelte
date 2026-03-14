@@ -28,12 +28,8 @@
 
 	let ratings = $state<Record<string, number>>({ ...data.cuisinePreferences });
 
-	// Track which categories are expanded — default: expanded if has selections
-	let expanded = $state<Set<string>>(new Set(
-		cuisineCategories
-			.filter(cat => cat.cuisines.some(c => (ratings[c] ?? 0) > 0))
-			.map(cat => cat.name)
-	));
+	// Track which categories are expanded — all collapsed by default
+	let expanded = $state<Set<string>>(new Set());
 
 	function toggleCategory(name: string) {
 		const next = new Set(expanded);
