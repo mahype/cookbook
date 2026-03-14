@@ -199,17 +199,18 @@
 {/snippet}
 
 <div
-	class="rounded-2xl shadow-sm overflow-hidden border transition-all duration-200 {approved && approvable
+	class="rounded-2xl shadow-sm border transition-all duration-200 {approved && approvable
 		? 'border-green-200 opacity-60'
 		: recipe.pantry_based
 			? 'bg-white border-orange-200 hover:shadow-md'
 			: 'bg-white border-warm-100 hover:shadow-md'}"
 >
 	{#if expandable}
-		<button class="block w-full text-left" onclick={() => expanded = !expanded}>
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div class="block w-full text-left cursor-pointer" onclick={() => expanded = !expanded}>
 			{@render cardImage()}
 			{@render cardContent()}
-		</button>
+		</div>
 	{:else}
 		<a href="/rezepte/{recipe.id}" class="block">
 			{@render cardImage()}
@@ -220,7 +221,7 @@
 	{#if expandable}
 		<div class="border-t border-warm-100 flex">
 			<button
-				onclick={(e) => { e.preventDefault(); e.stopPropagation(); expanded = !expanded; }}
+				onclick={() => expanded = !expanded}
 				class="flex-1 flex items-center justify-center gap-1.5 py-3.5 min-h-[44px] text-sm font-semibold bg-orange-500 text-white hover:bg-orange-600 transition-colors {dismissable ? 'rounded-bl-none' : ''}"
 			>
 				<span>{expanded ? 'Zuklappen' : 'Details anzeigen'}</span>
@@ -251,7 +252,7 @@
 			{/if}
 		</div>
 		{#if expanded}
-			<div class="border-t border-warm-100" transition:slide={{ duration: 200 }}>
+			<div class="border-t border-warm-100">
 				<RecipeDetails {recipe} {pantryNames} {onPantryAdd} {onPantryRemove} />
 			</div>
 		{/if}
