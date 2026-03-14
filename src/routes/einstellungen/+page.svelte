@@ -524,9 +524,9 @@
 
 	{#if message}
 		<div
-			class="mt-4 text-center text-sm font-medium py-2 px-4 rounded-xl {message.includes('Fehler') || message.includes('Netzwerk')
-				? 'bg-red-50 text-red-700'
-				: 'bg-herb-50 text-herb-700'}"
+			class="fixed top-[calc(env(safe-area-inset-top)+8px)] left-4 right-4 z-[100] text-center text-sm font-medium py-3 px-4 rounded-xl shadow-lg transition-all {message.includes('Fehler') || message.includes('Netzwerk')
+				? 'bg-red-500 text-white'
+				: 'bg-herb-500 text-white'}"
 		>
 			{message}
 		</div>
