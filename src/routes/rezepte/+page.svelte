@@ -268,24 +268,31 @@
 			}
 
 			// Generate images in background (non-blocking)
+			// Use OpenAI key from current provider, or try to find an OpenAI key in settings
+			let imageApiKey = '';
 			if (aiProviderConfig.id === 'openai' && aiProviderConfig.apiKey) {
-				const openaiKey = aiProviderConfig.apiKey;
+				imageApiKey = aiProviderConfig.apiKey;
+			} else if (isCapacitor()) {
+				// Check if there's a separate OpenAI key stored
+				const { loadPreference } = await import('$lib/stores/data');
+				const openaiKey = await loadPreference('openaiImageKey');
+				if (openaiKey) imageApiKey = openaiKey;
+			}
+
+			if (imageApiKey) {
 				for (const recipe of localData.suggestionRecipes ?? []) {
-					generateRecipeImage(recipe.name, openaiKey).then(async (url) => {
+					generateRecipeImage(recipe.name, imageApiKey).then(async (url) => {
 						if (url) {
-							const valid = await validateRecipeImage(recipe.name, url, aiProviderConfig);
-							if (valid) {
-								if (isCapacitor()) {
-									const db = await import('$lib/client/db');
-									await db.updateRecipeImage(recipe.id, url);
-								}
-								localData = {
-									...localData,
-									suggestionRecipes: (localData.suggestionRecipes ?? []).map((r) =>
-										r.id === recipe.id ? { ...r, image_url: url } : r
-									)
-								};
+							if (isCapacitor()) {
+								const db = await import('$lib/client/db');
+								await db.updateRecipeImage(recipe.id, url);
 							}
+							localData = {
+								...localData,
+								suggestionRecipes: (localData.suggestionRecipes ?? []).map((r) =>
+									r.id === recipe.id ? { ...r, image_url: url } : r
+								)
+							};
 						}
 					});
 				}

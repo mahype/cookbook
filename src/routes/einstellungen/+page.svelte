@@ -82,6 +82,9 @@
 				aiModel = prefs.aiProvider.model ?? '';
 				aiBaseUrl = prefs.aiProvider.baseUrl ?? '';
 			}
+			// Load separate OpenAI image key
+			const imgKey = await loadPreference('openaiImageKey');
+			if (imgKey) openaiImageKey = imgKey;
 		} else {
 			// Load health conditions from server
 			try {
@@ -242,6 +245,9 @@
 	let aiModel = $state(data.aiProvider?.model ?? '');
 	let aiBaseUrl = $state(data.aiProvider?.baseUrl ?? '');
 	let showApiKey = $state(false);
+	let openaiImageKey = $state('');
+	let imageSaveState = $state<'idle' | 'loading' | 'success' | 'error'>('idle');
+	let showImageKey = $state(false);
 	let showAdvanced = $state(false);
 	let showModelDropdown = $state(false);
 	let aiTestState: ButtonState = $state('idle');
@@ -587,6 +593,73 @@
 						✗ {aiTestResult.error}
 					</div>
 				{/if}
+			{/if}
+		</div>
+	</div>
+
+	<!-- OpenAI Image Key (separate from main AI provider) -->
+	<div class="bg-white rounded-2xl shadow-sm border border-warm-100 overflow-hidden">
+		<div class="px-5 py-4">
+			<h2 class="text-sm font-semibold text-warm-500 uppercase tracking-wide mb-1">Rezeptbilder</h2>
+			<p class="text-xs text-warm-400 mb-3">
+				{#if aiProviderId === 'openai'}
+					Dein OpenAI Key wird automatisch für Bilder verwendet.
+				{:else}
+					Für Rezeptfotos wird ein separater OpenAI API-Key benötigt (DALL-E 3, ~0,04€/Bild).
+				{/if}
+			</p>
+			{#if aiProviderId !== 'openai'}
+				<div class="space-y-3">
+					<div class="relative">
+						<input
+							type={showImageKey ? 'text' : 'password'}
+							bind:value={openaiImageKey}
+							placeholder="sk-..."
+							class="w-full px-4 py-3 pr-12 bg-warm-50 border border-warm-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-400"
+						/>
+						<button
+							onclick={() => showImageKey = !showImageKey}
+							class="absolute right-3 top-1/2 -translate-y-1/2 text-warm-400 p-1"
+						>
+							{#if showImageKey}
+								<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M3 3l18 18"/></svg>
+							{:else}
+								<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+							{/if}
+						</button>
+					</div>
+					<button
+						onclick={async () => {
+							imageSaveState = 'loading';
+							try {
+								if (isCapacitor()) {
+									await savePreference('openaiImageKey', openaiImageKey);
+									const { forceSave } = await import('$lib/client/db');
+									await forceSave();
+								}
+								imageSaveState = 'success';
+							} catch {
+								imageSaveState = 'error';
+							}
+							resetAfterDelay(s => imageSaveState = s);
+						}}
+						class="w-full py-3 rounded-xl font-semibold text-base transition-colors {
+							imageSaveState === 'success' ? 'bg-green-500 text-white' :
+							imageSaveState === 'error' ? 'bg-red-500 text-white' :
+							'bg-orange-500 text-white hover:bg-orange-600'
+						}"
+					>
+						{#if imageSaveState === 'loading'}
+							<svg class="w-5 h-5 mx-auto animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+						{:else if imageSaveState === 'success'}
+							<svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+						{:else if imageSaveState === 'error'}
+							<svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+						{:else}
+							Speichern
+						{/if}
+					</button>
+				</div>
 			{/if}
 		</div>
 	</div>
