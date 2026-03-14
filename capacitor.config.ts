@@ -1,14 +1,14 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-	appId: 'de.cookbook.app',
-	appName: 'Cookbook',
+	appId: 'app.cokko',
+	appName: 'Cokko',
 	webDir: 'build',
 	// No server config = loads from local webDir (fully offline!)
 	// For dev debugging, uncomment:
 	// server: { url: 'http://10.0.0.97:5178', cleartext: true },
 	ios: {
-		scheme: 'Cookbook'
+		scheme: 'Cokko'
 	},
 	android: {
 		// Auto-backup enabled by default (Google Drive)

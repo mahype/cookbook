@@ -1,6 +1,6 @@
 {
-	"name": "Cookbook",
-	"short_name": "Cookbook",
+	"name": "Cokko",
+	"short_name": "Cokko",
 	"description": "Dein persönliches KI-Kochbuch – Rezepte, Einkaufslisten und Essensplanung.",
 	"start_url": "/",
 	"display": "standalone",

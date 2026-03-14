@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="112" fill="#f97316"/>
+  
+  <!-- Pot body -->
+  <path d="M136 240 h240 v20 c0 80 -40 140 -120 150 c-80 -10 -120 -70 -120 -150 z" fill="white"/>
+  
+  <!-- Pot rim -->
+  <rect x="120" y="228" width="272" height="24" rx="12" fill="white"/>
+  
+  <!-- Pot handles -->
+  <rect x="96" y="236" width="40" height="12" rx="6" fill="white"/>
+  <rect x="376" y="236" width="40" height="12" rx="6" fill="white"/>
+  
+  <!-- Lid knob -->
+  <circle cx="256" cy="210" r="14" fill="white"/>
+  
+  <!-- Steam curls -->
+  <path d="M220 190 c0-20 -15-30 -15-50 c0-15 15-25 15-45" fill="none" stroke="white" stroke-width="10" stroke-linecap="round"/>
+  <path d="M256 180 c0-20 -15-30 -15-50 c0-15 15-25 15-45" fill="none" stroke="white" stroke-width="10" stroke-linecap="round"/>
+  <path d="M292 190 c0-20 -15-30 -15-50 c0-15 15-25 15-45" fill="none" stroke="white" stroke-width="10" stroke-linecap="round"/>
+</svg>
