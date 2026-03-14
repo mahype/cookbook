@@ -2,6 +2,38 @@
 	import { onMount } from 'svelte';
 	import { isCapacitor, loadPreferences, savePreference } from '$lib/stores/data';
 	import { healthConditionOptions } from '$lib/healthConditions';
+	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+
+	let showDeleteSettings = $state(false);
+	let showDeleteRecipes = $state(false);
+
+	async function deleteAllSettings() {
+		try {
+			if (isCapacitor()) {
+				const { clearAllPreferences } = await import('$lib/client/db');
+				await clearAllPreferences();
+			} else {
+				await fetch('/api/einstellungen/reset', { method: 'POST' });
+			}
+			window.location.reload();
+		} catch (e) {
+			console.error('Fehler beim Löschen der Einstellungen:', e);
+		}
+	}
+
+	async function deleteAllRecipes() {
+		try {
+			if (isCapacitor()) {
+				const { clearAllRecipes } = await import('$lib/client/db');
+				await clearAllRecipes();
+			} else {
+				await fetch('/api/rezepte/reset', { method: 'POST' });
+			}
+			window.location.reload();
+		} catch (e) {
+			console.error('Fehler beim Löschen der Rezepte:', e);
+		}
+	}
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -649,4 +681,40 @@
 		{totalActive()} {totalActive() === 1 ? 'Küche' : 'Küchen'} ausgewählt
 		{#if cuisineState === 'loading'}· Speichert...{/if}
 	</p>
+
+	<!-- Danger Zone -->
+	<div class="space-y-3 mb-10">
+		<button
+			onclick={() => showDeleteSettings = true}
+			class="w-full py-3 rounded-2xl font-semibold text-sm text-red-600 border-2 border-red-200 hover:bg-red-50 active:bg-red-100 transition-colors min-h-[48px]"
+		>
+			Einstellungen löschen
+		</button>
+		<button
+			onclick={() => showDeleteRecipes = true}
+			class="w-full py-3 rounded-2xl font-semibold text-sm text-red-600 border-2 border-red-200 hover:bg-red-50 active:bg-red-100 transition-colors min-h-[48px]"
+		>
+			Rezepte löschen
+		</button>
+	</div>
 </div>
+
+<ConfirmDialog
+	open={showDeleteSettings}
+	title="Einstellungen löschen?"
+	message="Alle Einstellungen werden zurückgesetzt: KI-Konfiguration, Küchenpräferenzen, Gesundheitsbedingungen, Portionen und Wünsche. Der Onboarding-Wizard wird beim nächsten Start erneut angezeigt."
+	confirmLabel="Ja, alles löschen"
+	cancelLabel="Abbrechen"
+	onConfirm={deleteAllSettings}
+	onCancel={() => showDeleteSettings = false}
+/>
+
+<ConfirmDialog
+	open={showDeleteRecipes}
+	title="Alle Rezepte löschen?"
+	message="Alle gespeicherten Rezepte und Vorschläge werden unwiderruflich gelöscht. Vorrat, Einkaufsliste und Personen bleiben erhalten."
+	confirmLabel="Ja, Rezepte löschen"
+	cancelLabel="Abbrechen"
+	onConfirm={deleteAllRecipes}
+	onCancel={() => showDeleteRecipes = false}
+/>

@@ -586,6 +586,19 @@ export async function setPreference(key: string, value: string): Promise<void> {
 	scheduleSave();
 }
 
+export async function clearAllPreferences(): Promise<void> {
+	const d = await getDb();
+	d.run('DELETE FROM preferences');
+	scheduleSave();
+}
+
+export async function clearAllRecipes(): Promise<void> {
+	const d = await getDb();
+	d.run('DELETE FROM recipes');
+	d.run('DELETE FROM daily_suggestions');
+	scheduleSave();
+}
+
 // ============================================================
 // Persons CRUD
 // ============================================================
