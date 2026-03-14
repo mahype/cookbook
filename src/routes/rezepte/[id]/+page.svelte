@@ -7,6 +7,57 @@
 	let { data }: { data: PageData } = $props();
 	const recipe = data.recipe;
 
+	const baseServings = recipe.servings || 2;
+	let servings = $state(baseServings);
+	const servingsMultiplier = $derived(servings / baseServings);
+
+	const fractionMap: [number, string][] = [
+		[0.25, '¼'], [0.333, '⅓'], [0.5, '½'], [0.666, '⅔'], [0.75, '¾']
+	];
+
+	function formatAmount(amount: string): string {
+		// Extract leading number(s) from the amount string
+		const match = amount.match(/^([\d.,/]+)\s*(.*)/);
+		if (!match) return amount;
+
+		let numStr = match[1];
+		const rest = match[2];
+
+		// Handle fractions like "1/2"
+		let num: number;
+		if (numStr.includes('/')) {
+			const [a, b] = numStr.split('/').map(Number);
+			num = a / b;
+		} else {
+			num = parseFloat(numStr.replace(',', '.'));
+		}
+		if (isNaN(num)) return amount;
+
+		const scaled = num * servingsMultiplier;
+
+		// Format the number nicely
+		const formatted = formatNumber(scaled);
+		return rest ? `${formatted} ${rest}` : formatted;
+	}
+
+	function formatNumber(n: number): string {
+		// Check if it's close to a whole number
+		if (Math.abs(n - Math.round(n)) < 0.01) return String(Math.round(n));
+
+		const whole = Math.floor(n);
+		const frac = n - whole;
+
+		for (const [val, symbol] of fractionMap) {
+			if (Math.abs(frac - val) < 0.05) {
+				return whole > 0 ? `${whole}${symbol}` : symbol;
+			}
+		}
+
+		// Fall back to 1 decimal
+		const rounded = Math.round(n * 10) / 10;
+		return String(rounded).replace('.', ',');
+	}
+
 	let pantryNames = $state(data.pantryNames);
 	let showDeleteDialog = $state(false);
 	let deleting = $state(false);

@@ -17,7 +17,8 @@ function loadCuisinePreferences(): Record<string, number> {
 export const GET: RequestHandler = async () => {
 	const cuisine_preferences = loadCuisinePreferences();
 	const recipe_notes = getPreference('recipe_notes') ?? '';
-	return json({ cuisine_preferences, recipe_notes });
+	const default_servings = parseInt(getPreference('default_servings') ?? '2', 10);
+	return json({ cuisine_preferences, recipe_notes, default_servings });
 };
 
 export const PUT: RequestHandler = async ({ request }) => {
@@ -37,6 +38,14 @@ export const PUT: RequestHandler = async ({ request }) => {
 		setPreference('cuisine_preferences', JSON.stringify(prefs));
 	}
 
+	if ('default_servings' in body) {
+		const val = parseInt(body.default_servings, 10);
+		if (isNaN(val) || val < 1 || val > 12) {
+			return json({ error: 'default_servings muss zwischen 1 und 12 liegen' }, { status: 400 });
+		}
+		setPreference('default_servings', String(val));
+	}
+
 	if ('recipe_notes' in body) {
 		if (typeof body.recipe_notes !== 'string') {
 			return json({ error: 'recipe_notes muss ein String sein' }, { status: 400 });
@@ -46,5 +55,6 @@ export const PUT: RequestHandler = async ({ request }) => {
 
 	const cuisine_preferences = loadCuisinePreferences();
 	const recipe_notes = getPreference('recipe_notes') ?? '';
-	return json({ cuisine_preferences, recipe_notes });
+	const default_servings = parseInt(getPreference('default_servings') ?? '2', 10);
+	return json({ cuisine_preferences, recipe_notes, default_servings });
 };

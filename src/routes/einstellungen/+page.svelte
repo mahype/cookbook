@@ -45,6 +45,7 @@
 		return cuisines.filter(c => (ratings[c] ?? 0) > 0).length;
 	}
 
+	let defaultServings = $state(data.defaultServings);
 	let recipeNotes = $state(data.recipeNotes);
 	let saving = $state(false);
 	let savingNotes = $state(false);
@@ -110,6 +111,24 @@
 		}
 	}
 
+	async function saveServings(value: number) {
+		try {
+			await fetch('/api/einstellungen', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ default_servings: value })
+			});
+		} catch {}
+	}
+
+	function adjustServings(delta: number) {
+		const next = Math.min(12, Math.max(1, defaultServings + delta));
+		if (next !== defaultServings) {
+			defaultServings = next;
+			saveServings(next);
+		}
+	}
+
 	function totalActive(): number {
 		return Object.values(ratings).filter(v => v > 0).length;
 	}
@@ -120,6 +139,27 @@
 	<p class="text-sm text-warm-500 mb-6">
 		Bewerte deine bevorzugten Küchen – deine Rezeptvorschläge werden entsprechend gewichtet.
 	</p>
+
+	<!-- Default Servings -->
+	<div class="bg-white rounded-2xl shadow-sm border border-warm-100 overflow-hidden mb-6">
+		<div class="px-5 py-4">
+			<h2 class="text-sm font-semibold text-warm-500 uppercase tracking-wide mb-1">Standard-Portionen</h2>
+			<p class="text-xs text-warm-400 mb-4">Für wie viele Personen kochst du normalerweise?</p>
+			<div class="flex items-center justify-center gap-4">
+				<button
+					onclick={() => adjustServings(-1)}
+					disabled={defaultServings <= 1}
+					class="w-11 h-11 rounded-full bg-spice-100 text-spice-700 flex items-center justify-center text-2xl font-bold hover:bg-spice-200 active:bg-spice-300 transition-colors disabled:opacity-30"
+				>−</button>
+				<span class="text-3xl font-bold text-warm-800 w-10 text-center">{defaultServings}</span>
+				<button
+					onclick={() => adjustServings(1)}
+					disabled={defaultServings >= 12}
+					class="w-11 h-11 rounded-full bg-spice-100 text-spice-700 flex items-center justify-center text-2xl font-bold hover:bg-spice-200 active:bg-spice-300 transition-colors disabled:opacity-30"
+				>+</button>
+			</div>
+		</div>
+	</div>
 
 	<div class="bg-white rounded-2xl shadow-sm border border-warm-100 overflow-hidden">
 		<div class="px-5 pt-4 pb-2">

@@ -33,6 +33,7 @@ function initDb(db: Database.Database) {
 			store_category TEXT DEFAULT '',
 			status TEXT NOT NULL DEFAULT 'vorschlag' CHECK(status IN ('vorschlag', 'approved')),
 			raw_input TEXT DEFAULT '',
+			servings INTEGER NOT NULL DEFAULT 2,
 			created_at TEXT NOT NULL DEFAULT (datetime('now'))
 		);
 
@@ -97,6 +98,9 @@ function initDb(db: Database.Database) {
 	if (!columns.some(c => c.name === 'raw_input')) {
 		db.exec("ALTER TABLE recipes ADD COLUMN raw_input TEXT DEFAULT ''");
 	}
+	if (!columns.some(c => c.name === 'servings')) {
+		db.exec("ALTER TABLE recipes ADD COLUMN servings INTEGER NOT NULL DEFAULT 2");
+	}
 }
 
 export type Ingredient = {
@@ -121,6 +125,7 @@ export type Recipe = {
 	store_category: string;
 	status: 'vorschlag' | 'approved';
 	pantry_based: number;
+	servings: number;
 	created_at: string;
 };
 
