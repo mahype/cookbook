@@ -19,10 +19,15 @@
 
 	async function fetchShoppingCount() {
 		try {
-			const res = await fetch('/api/einkaufsliste/count');
-			if (res.ok) {
-				const data = await res.json();
-				shoppingCount = data.count;
+			if (isCapacitor()) {
+				const { getShoppingCount } = await import('$lib/client/db');
+				shoppingCount = await getShoppingCount();
+			} else {
+				const res = await fetch('/api/einkaufsliste/count');
+				if (res.ok) {
+					const data = await res.json();
+					shoppingCount = data.count;
+				}
 			}
 		} catch {
 			// ignore
