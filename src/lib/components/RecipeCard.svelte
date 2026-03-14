@@ -205,24 +205,20 @@
 			? 'bg-white border-orange-200 hover:shadow-md'
 			: 'bg-white border-warm-100 hover:shadow-md'}"
 >
-	{#if expandable}
-		<!-- svelte-ignore a11y_no_static_element_interactions -->
-		<div class="block w-full text-left cursor-pointer" onclick={() => expanded = !expanded}>
-			{@render cardImage()}
-			{@render cardContent()}
-		</div>
-	{:else}
+	{#if !expandable}
 		<a href="/rezepte/{recipe.id}" class="block">
 			{@render cardImage()}
 			{@render cardContent()}
 		</a>
-	{/if}
+	{:else}
+		{@render cardImage()}
+		{@render cardContent()}
 
-	{#if expandable}
 		<div class="border-t border-warm-100 flex">
 			<button
-				onclick={() => expanded = !expanded}
-				class="flex-1 flex items-center justify-center gap-1.5 py-3.5 min-h-[44px] text-sm font-semibold bg-orange-500 text-white hover:bg-orange-600 transition-colors {dismissable ? 'rounded-bl-none' : ''}"
+				type="button"
+				onclick={() => { expanded = !expanded; }}
+				class="flex-1 flex items-center justify-center gap-1.5 py-3.5 min-h-[44px] text-sm font-semibold bg-orange-500 text-white active:bg-orange-700 transition-colors"
 			>
 				<span>{expanded ? 'Zuklappen' : 'Details anzeigen'}</span>
 				<svg
@@ -231,18 +227,14 @@
 					stroke="currentColor"
 					viewBox="0 0 24 24"
 				>
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M19 9l-7 7-7-7"
-					/>
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
 				</svg>
 			</button>
 			{#if dismissable && onDismiss}
 				<button
-					onclick={(e) => { e.preventDefault(); e.stopPropagation(); onDismiss(recipe); }}
-					class="w-12 flex items-center justify-center bg-orange-500 hover:bg-red-500 text-white transition-colors border-l border-orange-400"
+					type="button"
+					onclick={() => onDismiss(recipe)}
+					class="w-12 flex items-center justify-center bg-orange-500 active:bg-red-600 text-white transition-colors border-l border-orange-400"
 					aria-label="Rezept verwerfen"
 				>
 					<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
