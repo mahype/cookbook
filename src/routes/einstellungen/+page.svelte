@@ -388,6 +388,26 @@
 		</div>
 	</div>
 
+	<!-- Personen & Haushalt -->
+	<a href="/personen" class="block bg-white rounded-2xl shadow-sm border border-warm-100 overflow-hidden mb-6 hover:shadow-md transition-shadow">
+		<div class="px-5 py-4 flex items-center justify-between">
+			<div class="flex items-center gap-3">
+				<span class="w-8 flex items-center justify-center text-warm-500">
+					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+					</svg>
+				</span>
+				<div>
+					<span class="text-base font-medium text-warm-800">Personen & Haushalt</span>
+					<p class="text-xs text-warm-500">Vorlieben, Abneigungen & Allergien verwalten</p>
+				</div>
+			</div>
+			<svg class="w-5 h-5 text-warm-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+			</svg>
+		</div>
+	</a>
+
 	<!-- Health Conditions -->
 	<div class="bg-white rounded-2xl shadow-sm border border-warm-100 overflow-hidden mb-6">
 		<div class="px-5 py-4">
@@ -643,26 +663,6 @@
 			</button>
 		</div>
 	</div>
-
-	<!-- Personen & Haushalt -->
-	<a href="/personen" class="block bg-white rounded-2xl shadow-sm border border-warm-100 overflow-hidden mt-6 hover:shadow-md transition-shadow">
-		<div class="px-5 py-4 flex items-center justify-between">
-			<div class="flex items-center gap-3">
-				<span class="w-8 flex items-center justify-center text-warm-500">
-					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-					</svg>
-				</span>
-				<div>
-					<span class="text-base font-medium text-warm-800">Personen & Haushalt</span>
-					<p class="text-xs text-warm-500">Vorlieben, Abneigungen & Allergien verwalten</p>
-				</div>
-			</div>
-			<svg class="w-5 h-5 text-warm-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-			</svg>
-		</div>
-	</a>
 
 	<p class="text-xs text-warm-400 text-center mt-4 mb-6">
 		{totalActive()} {totalActive() === 1 ? 'Küche' : 'Küchen'} ausgewählt
