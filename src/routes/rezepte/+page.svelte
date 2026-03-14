@@ -4,7 +4,7 @@
 	import TabToggle from '$lib/components/TabToggle.svelte';
 	import { isCapacitor, loadRecipes, loadDailySuggestions, loadPantryNames, getDistinctCuisines, getDistinctStores } from '$lib/stores/data';
 	import { generateRecipes } from '$lib/client/ai-recipes';
-	import { generateRecipeImage, validateRecipeImage } from '$lib/client/ai-images';
+	import { findOrGenerateImage } from '$lib/client/ai-images';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -267,21 +267,22 @@
 				window.location.reload();
 			}
 
-			// Generate images in background (non-blocking)
-			// Use OpenAI key from current provider, or try to find an OpenAI key in settings
-			let imageApiKey = '';
-			if (aiProviderConfig.id === 'openai' && aiProviderConfig.apiKey) {
-				imageApiKey = aiProviderConfig.apiKey;
-			} else if (isCapacitor()) {
-				// Check if there's a separate OpenAI key stored
+			// Find images in background (Pexels first, then DALL-E fallback)
+			let pexelsKey = '';
+			let openaiKey = '';
+			if (isCapacitor()) {
 				const { loadPreference } = await import('$lib/stores/data');
-				const openaiKey = await loadPreference('openaiImageKey');
-				if (openaiKey) imageApiKey = openaiKey;
+				pexelsKey = (await loadPreference('pexelsApiKey')) ?? '';
+				openaiKey = (await loadPreference('openaiImageKey')) ?? '';
+			}
+			// If main provider is OpenAI, use that key for DALL-E
+			if (!openaiKey && aiProviderConfig.id === 'openai') {
+				openaiKey = aiProviderConfig.apiKey;
 			}
 
-			if (imageApiKey) {
+			if (pexelsKey || openaiKey) {
 				for (const recipe of localData.suggestionRecipes ?? []) {
-					generateRecipeImage(recipe.name, imageApiKey).then(async (url) => {
+					findOrGenerateImage(recipe.name, pexelsKey, openaiKey).then(async (url) => {
 						if (url) {
 							if (isCapacitor()) {
 								const db = await import('$lib/client/db');
