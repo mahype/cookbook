@@ -1,15 +1,43 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import RecipeCard from '$lib/components/RecipeCard.svelte';
 	import TabToggle from '$lib/components/TabToggle.svelte';
+	import { isCapacitor, loadRecipes, loadDailySuggestions, loadPantryNames, getDistinctCuisines, getDistinctStores } from '$lib/stores/data';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
+	let localData = $state(data);
 
-	let activeTab = $state(data.tab);
-	let cuisine = $state(data.filters.current.cuisine);
-	let store = $state(data.filters.current.store);
-	let maxTime = $state(data.filters.current.maxTime);
-	let pantryNames = $state(data.pantryNames);
+	onMount(async () => {
+		if (isCapacitor()) {
+			const [suggestions, recipes, pantryNms, cuisines, stores] = await Promise.all([
+				loadDailySuggestions(),
+				loadRecipes({ status: 'approved' }),
+				loadPantryNames(),
+				getDistinctCuisines(),
+				getDistinctStores()
+			]);
+			localData = {
+				...localData,
+				date: suggestions.date,
+				suggestionRecipes: suggestions.recipes,
+				recipes,
+				pantryNames: pantryNms,
+				filters: {
+					cuisines,
+					stores,
+					current: { cuisine: '', store: '', maxTime: '' }
+				}
+			};
+			pantryNames = pantryNms;
+		}
+	});
+
+	let activeTab = $state(localData.tab ?? 'vorschlaege');
+	let cuisine = $state(localData.filters?.current?.cuisine ?? '');
+	let store = $state(localData.filters?.current?.store ?? '');
+	let maxTime = $state(localData.filters?.current?.maxTime ?? '');
+	let pantryNames = $state(localData.pantryNames ?? []);
 
 	const tabs = [
 		{ value: 'vorschlaege', label: 'Vorschläge' },
@@ -72,7 +100,7 @@
 		if (cuisine) params.set('cuisine', cuisine);
 		if (store) params.set('store', store);
 		if (maxTime) params.set('maxTime', maxTime);
-		if (data.sort !== 'newest') params.set('sort', data.sort);
+		if ((localData.sort ?? 'newest') !== 'newest') params.set('sort', (localData.sort ?? 'newest'));
 		const query = params.toString();
 		window.location.href = '/rezepte' + (query ? '?' + query : '');
 	}
@@ -83,7 +111,7 @@
 		maxTime = '';
 		const params = new URLSearchParams();
 		params.set('tab', 'gespeichert');
-		if (data.sort !== 'newest') params.set('sort', data.sort);
+		if ((localData.sort ?? 'newest') !== 'newest') params.set('sort', (localData.sort ?? 'newest'));
 		const query = params.toString();
 		window.location.href = '/rezepte' + (query ? '?' + query : '');
 	}
@@ -111,9 +139,9 @@
 
 	{#if activeTab === 'vorschlaege'}
 		<!-- Vorschläge tab -->
-		<p class="text-warm-500 text-sm mb-4">{formatDate(data.date)}</p>
+		<p class="text-warm-500 text-sm mb-4">{formatDate(localData.date)}</p>
 
-		{#if data.suggestionRecipes.length === 0}
+		{#if (localData.suggestionRecipes ?? []).length === 0}
 			<div class="text-center py-16">
 				<div class="text-warm-300 mb-4"><svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg></div>
 				<p class="text-warm-500 text-lg">Keine Vorschläge für heute</p>
@@ -121,7 +149,7 @@
 			</div>
 		{:else}
 			<div class="space-y-4 mb-6">
-				{#each data.suggestionRecipes as recipe (recipe.id)}
+				{#each localData.suggestionRecipes ?? [] as recipe (recipe.id)}
 					<RecipeCard
 						{recipe}
 						approvable={true}
@@ -135,14 +163,14 @@
 		{/if}
 	{:else}
 		<!-- Gespeichert tab -->
-		<p class="text-warm-500 text-sm mb-4">{data.recipes.length} Rezept{data.recipes.length !== 1 ? 'e' : ''} in der Sammlung</p>
+		<p class="text-warm-500 text-sm mb-4">{(localData.recipes ?? []).length} Rezept{(localData.recipes ?? []).length !== 1 ? 'e' : ''} in der Sammlung</p>
 
 		<!-- Sort pills -->
 		<div class="flex gap-2 overflow-x-auto no-scrollbar mb-4 -mx-4 px-4">
 			{#each sortOptions as opt}
 				<button
 					onclick={() => setSort(opt.value)}
-					class="rounded-full px-4 py-2 text-sm whitespace-nowrap transition-colors {data.sort === opt.value ? 'bg-orange-500 text-white font-semibold' : 'bg-white border border-warm-200 text-warm-600'}"
+					class="rounded-full px-4 py-2 text-sm whitespace-nowrap transition-colors {(localData.sort ?? 'newest') === opt.value ? 'bg-orange-500 text-white font-semibold' : 'bg-white border border-warm-200 text-warm-600'}"
 				>
 					{opt.label}
 				</button>
@@ -167,7 +195,7 @@
 						class="w-full text-sm rounded-lg border border-warm-200 px-2 py-2.5 min-h-[44px] bg-warm-50 text-warm-800 focus:outline-none focus:ring-2 focus:ring-spice-300"
 					>
 						<option value="">Alle</option>
-						{#each data.filters.cuisines as c}
+						{#each localData.filters?.cuisines ?? [] as c}
 							<option value={c}>{c}</option>
 						{/each}
 					</select>
@@ -181,7 +209,7 @@
 						class="w-full text-sm rounded-lg border border-warm-200 px-2 py-2.5 min-h-[44px] bg-warm-50 text-warm-800 focus:outline-none focus:ring-2 focus:ring-spice-300"
 					>
 						<option value="">Alle</option>
-						{#each data.filters.stores as s}
+						{#each localData.filters?.stores ?? [] as s}
 							<option value={s}>{s}</option>
 						{/each}
 					</select>
@@ -204,7 +232,7 @@
 			</div>
 		</div>
 
-		{#if data.recipes.length === 0}
+		{#if (localData.recipes ?? []).length === 0}
 			<div class="text-center py-16">
 				<div class="text-5xl mb-4">&#128218;</div>
 				{#if hasFilters}
@@ -223,7 +251,7 @@
 			</div>
 		{:else}
 			<div class="space-y-4 pb-24">
-				{#each data.recipes as recipe (recipe.id)}
+				{#each localData.recipes ?? [] as recipe (recipe.id)}
 					<RecipeCard {recipe} expandable={true} {pantryNames} onPantryAdd={handlePantryAdd} onPantryRemove={handlePantryRemove} />
 				{/each}
 			</div>

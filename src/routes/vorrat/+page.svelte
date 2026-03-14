@@ -1,8 +1,16 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { isCapacitor, loadPantry } from '$lib/stores/data';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
-	let items = $state(data.items);
+	let items = $state(data.items ?? []);
+
+	onMount(async () => {
+		if (isCapacitor()) {
+			items = await loadPantry();
+		}
+	});
 	let newItem = $state('');
 	let error = $state('');
 

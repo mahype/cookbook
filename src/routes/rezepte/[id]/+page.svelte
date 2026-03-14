@@ -1,11 +1,44 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { isMatchedByPantry } from '$lib/pantryMatch';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import { isCapacitor, loadRecipe, loadRecipes, loadPantryNames } from '$lib/stores/data';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
-	const recipe = data.recipe;
+	let localData = $state(data);
+
+	onMount(async () => {
+		if (isCapacitor()) {
+			const id = Number(page.params.id);
+			const [recipe, pantryNms, allApproved] = await Promise.all([
+				loadRecipe(id),
+				loadPantryNames(),
+				loadRecipes({ status: 'approved' })
+			]);
+			if (recipe) {
+				// Find related recipes by shared shopping tags
+				let related: typeof allApproved = [];
+				if (recipe.shopping_tags?.length > 0) {
+					related = allApproved
+						.filter((r) => r.id !== id)
+						.map((r) => ({
+							...r,
+							_sharedTags: r.shopping_tags.filter((t: string) => recipe.shopping_tags.includes(t)).length
+						}))
+						.filter((r) => (r as any)._sharedTags > 0)
+						.sort((a, b) => (b as any)._sharedTags - (a as any)._sharedTags)
+						.slice(0, 3);
+				}
+				localData = { recipe, related, pantryNames: pantryNms };
+				pantryNames = pantryNms;
+			}
+		}
+	});
+
+	const recipe = $derived(localData.recipe);
 
 	const baseServings = recipe.servings || 2;
 	let servings = $state(baseServings);
@@ -58,7 +91,7 @@
 		return String(rounded).replace('.', ',');
 	}
 
-	let pantryNames = $state(data.pantryNames);
+	let pantryNames = $state(localData.pantryNames ?? []);
 	let showDeleteDialog = $state(false);
 	let deleting = $state(false);
 	let addingIngredient = $state<string | null>(null);
@@ -422,11 +455,11 @@
 		{/if}
 
 		<!-- Related Recipes -->
-		{#if data.related.length > 0}
+		{#if localData.related.length > 0}
 			<div class="mb-4">
 				<h2 class="text-lg font-bold text-warm-900 mb-3">Ähnliche Zutaten</h2>
 				<div class="space-y-3">
-					{#each data.related as rel}
+					{#each localData.related as rel}
 						<a href="/rezepte/{rel.id}" class="flex items-center gap-3 bg-white rounded-xl p-3.5 border border-warm-100 shadow-sm hover:shadow-md transition-shadow min-h-[56px]">
 							{#if rel.image_url}
 								<img

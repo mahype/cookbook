@@ -1,11 +1,19 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import { isCapacitor, loadShoppingList } from '$lib/stores/data';
 	import type { PageData } from './$types';
 	import type { ShoppingItem } from './+page.server';
 
 	let { data }: { data: PageData } = $props();
 
-	let items = $state<ShoppingItem[]>(data.items);
+	let items = $state<ShoppingItem[]>(data.items ?? []);
+
+	onMount(async () => {
+		if (isCapacitor()) {
+			items = await loadShoppingList() as unknown as ShoppingItem[];
+		}
+	});
 	let showClearAllDialog = $state(false);
 	let toggling = $state<number | null>(null);
 	let deleting = $state<number | null>(null);

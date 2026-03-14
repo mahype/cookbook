@@ -1,12 +1,25 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import TabToggle from '$lib/components/TabToggle.svelte';
+	import { isCapacitor, loadShoppingList, loadPantry } from '$lib/stores/data';
 	import type { PageData } from './$types';
 	import type { ShoppingItem } from './+page.server';
 
 	let { data }: { data: PageData } = $props();
 
-	let activeTab = $state(data.tab);
+	onMount(async () => {
+		if (isCapacitor()) {
+			const [shoppingItems, pantryItemsList] = await Promise.all([
+				loadShoppingList(),
+				loadPantry()
+			]);
+			items = shoppingItems as unknown as ShoppingItem[];
+			pantryItems = pantryItemsList;
+		}
+	});
+
+	let activeTab = $state(data.tab ?? 'einkaufsliste');
 
 	const tabOptions = [
 		{ value: 'einkaufsliste', label: 'Einkaufsliste' },
@@ -24,7 +37,7 @@
 	}
 
 	// --- Einkaufsliste state ---
-	let items = $state<ShoppingItem[]>(data.shoppingItems);
+	let items = $state<ShoppingItem[]>(data.shoppingItems ?? []);
 	let showClearAllDialog = $state(false);
 	let toggling = $state<number | null>(null);
 	let deleting = $state<number | null>(null);
@@ -113,7 +126,7 @@
 	}
 
 	// --- Vorrat state ---
-	let pantryItems = $state(data.pantryItems);
+	let pantryItems = $state(data.pantryItems ?? []);
 	let newItem = $state('');
 	let pantryError = $state('');
 

@@ -1,7 +1,24 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { isCapacitor, loadPreferences } from '$lib/stores/data';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
+
+	onMount(async () => {
+		if (isCapacitor()) {
+			const prefs = await loadPreferences();
+			ratings = { ...prefs.cuisinePreferences };
+			recipeNotes = prefs.recipeNotes;
+			defaultServings = prefs.defaultServings;
+			if (prefs.aiProvider) {
+				aiProviderId = prefs.aiProvider.id ?? '';
+				aiApiKey = prefs.aiProvider.apiKey ?? '';
+				aiModel = prefs.aiProvider.model ?? '';
+				aiBaseUrl = prefs.aiProvider.baseUrl ?? '';
+			}
+		}
+	});
 
 	const cuisineCategories = [
 		{
@@ -26,7 +43,7 @@
 		}
 	];
 
-	let ratings = $state<Record<string, number>>({ ...data.cuisinePreferences });
+	let ratings = $state<Record<string, number>>({ ...(data.cuisinePreferences ?? {}) });
 
 	// Track which categories are expanded — all collapsed by default
 	let expanded = $state<Set<string>>(new Set());
@@ -45,8 +62,8 @@
 		return cuisines.filter(c => (ratings[c] ?? 0) > 0).length;
 	}
 
-	let defaultServings = $state(data.defaultServings);
-	let recipeNotes = $state(data.recipeNotes);
+	let defaultServings = $state(data.defaultServings ?? 2);
+	let recipeNotes = $state(data.recipeNotes ?? '');
 	let saving = $state(false);
 	let savingNotes = $state(false);
 	let message = $state('');
