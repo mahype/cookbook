@@ -3,6 +3,8 @@
 	import RecipeCard from '$lib/components/RecipeCard.svelte';
 	import TabToggle from '$lib/components/TabToggle.svelte';
 	import { isCapacitor, loadRecipes, loadDailySuggestions, loadPantryNames, getDistinctCuisines, getDistinctStores } from '$lib/stores/data';
+	import { generateRecipes } from '$lib/client/ai-recipes';
+	import { generateRecipeImage, validateRecipeImage } from '$lib/client/ai-images';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -128,6 +130,135 @@
 	}
 
 	let fabOpen = $state(false);
+	let generating = $state(false);
+	let generateError = $state('');
+	let generateProgress = $state('');
+
+	async function handleGenerate() {
+		generating = true;
+		generateError = '';
+		generateProgress = 'Lade Einstellungen...';
+
+		try {
+			let aiProviderConfig, prefs, pantryItemsList: string[];
+
+			if (isCapacitor()) {
+				const { loadPreferences, loadPantryNames: lpn } = await import('$lib/stores/data');
+				const prefsData = await loadPreferences();
+				prefs = prefsData;
+				pantryItemsList = await lpn();
+				aiProviderConfig = prefsData.aiProvider;
+			} else {
+				const [prefsRes, pantryRes] = await Promise.all([
+					fetch('/api/einstellungen'),
+					fetch('/api/vorrat')
+				]);
+				prefs = await prefsRes.json();
+				const pantryData = await pantryRes.json();
+				pantryItemsList = pantryData.map((p: any) => p.name || p);
+				aiProviderConfig =
+					typeof prefs.aiProvider === 'string'
+						? JSON.parse(prefs.aiProvider)
+						: prefs.aiProvider;
+			}
+
+			if (!aiProviderConfig?.apiKey) {
+				generateError = 'Bitte zuerst KI-Einstellungen konfigurieren (Einstellungen → KI)';
+				return;
+			}
+
+			generateProgress = 'Generiere 5 Rezepte...';
+
+			const recipes = await generateRecipes(
+				{
+					count: 5,
+					pantryBased: Math.min(2, pantryItemsList.length > 0 ? 2 : 0),
+					pantryItems: pantryItemsList,
+					cuisinePrefs: prefs.cuisinePreferences ?? {},
+					recipeNotes: prefs.recipeNotes ?? '',
+					servings: prefs.defaultServings ?? 2
+				},
+				aiProviderConfig
+			);
+
+			generateProgress = `${recipes.length} Rezepte generiert! Speichere...`;
+
+			// Save recipes
+			if (isCapacitor()) {
+				const db = await import('$lib/client/db');
+				const today = new Date().toISOString().split('T')[0];
+				const recipeIds: number[] = [];
+				for (const r of recipes) {
+					const id = await db.insertRecipe({
+						name: r.name,
+						description: r.description,
+						cuisine: r.cuisine,
+						cost_estimate: r.cost_estimate,
+						prep_time: r.prep_time,
+						difficulty: r.difficulty,
+						image_url: '',
+						ingredients: r.ingredients,
+						steps: r.steps,
+						shopping_tags: [],
+						status: 'vorschlag',
+						pantry_based: r.pantry_based ? 1 : 0,
+						servings: r.servings
+					});
+					recipeIds.push(id);
+				}
+				await db.saveDailySuggestions(today, recipeIds);
+			} else {
+				await fetch('/api/vorschlaege/neu', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ recipes })
+				});
+			}
+
+			// Reload suggestions
+			if (isCapacitor()) {
+				const sug = await loadDailySuggestions();
+				const pn = await loadPantryNames();
+				localData = {
+					...localData,
+					suggestionRecipes: sug.recipes,
+					date: sug.date,
+					pantryNames: pn
+				};
+			} else {
+				window.location.reload();
+			}
+
+			// Generate images in background (non-blocking)
+			if (aiProviderConfig.id === 'openai' && aiProviderConfig.apiKey) {
+				const openaiKey = aiProviderConfig.apiKey;
+				for (const recipe of localData.suggestionRecipes ?? []) {
+					generateRecipeImage(recipe.name, openaiKey).then(async (url) => {
+						if (url) {
+							const valid = await validateRecipeImage(recipe.name, url, aiProviderConfig);
+							if (valid) {
+								if (isCapacitor()) {
+									const db = await import('$lib/client/db');
+									await db.updateRecipeImage(recipe.id, url);
+								}
+								localData = {
+									...localData,
+									suggestionRecipes: (localData.suggestionRecipes ?? []).map((r) =>
+										r.id === recipe.id ? { ...r, image_url: url } : r
+									)
+								};
+							}
+						}
+					});
+				}
+			}
+		} catch (e) {
+			generateError = e instanceof Error ? e.message : 'Fehler bei der Rezept-Generierung';
+		} finally {
+			generating = false;
+			generateProgress = '';
+		}
+	}
 </script>
 
 <div class="max-w-lg mx-auto px-4 pt-6">
@@ -142,11 +273,37 @@
 		<p class="text-warm-500 text-sm mb-4">{formatDate(localData.date)}</p>
 
 		{#if (localData.suggestionRecipes ?? []).length === 0}
-			<div class="text-center py-16">
-				<div class="text-warm-300 mb-4"><svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg></div>
-				<p class="text-warm-500 text-lg">Keine Vorschläge für heute</p>
-				<p class="text-warm-400 text-sm mt-2">Schau morgen wieder vorbei!</p>
-			</div>
+			{#if generating}
+				<div class="text-center py-16">
+					<svg class="animate-spin w-10 h-10 mx-auto text-spice-500 mb-4" fill="none" viewBox="0 0 24 24">
+						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+						<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+					</svg>
+					<p class="text-warm-600 font-medium">{generateProgress}</p>
+				</div>
+			{:else}
+				<div class="text-center py-16">
+					<div class="text-warm-300 mb-4">
+						<svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+						</svg>
+					</div>
+					<p class="text-warm-500 text-lg">Keine Vorschläge</p>
+					<p class="text-warm-400 text-sm mt-2">Lass dir von der KI Rezepte vorschlagen!</p>
+					{#if generateError}
+						<p class="text-red-500 text-sm mt-2">{generateError}</p>
+					{/if}
+					<button
+						onclick={handleGenerate}
+						class="inline-flex items-center gap-2 mt-6 px-6 py-3.5 min-h-[48px] bg-spice-500 text-white rounded-xl font-medium hover:bg-spice-600 transition-colors"
+					>
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+						</svg>
+						Rezepte generieren
+					</button>
+				</div>
+			{/if}
 		{:else}
 			<div class="space-y-4 mb-6">
 				{#each localData.suggestionRecipes ?? [] as recipe (recipe.id)}
@@ -159,6 +316,26 @@
 						onPantryRemove={handlePantryRemove}
 					/>
 				{/each}
+			</div>
+			<div class="text-center py-6">
+				<button
+					onclick={handleGenerate}
+					disabled={generating}
+					class="inline-flex items-center gap-2 px-5 py-2.5 border-2 border-spice-500 text-spice-600 rounded-xl font-medium hover:bg-spice-50 transition-colors disabled:opacity-50"
+				>
+					{#if generating}
+						<svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+						</svg>
+						Generiere...
+					{:else}
+						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+						</svg>
+						Neue Rezepte
+					{/if}
+				</button>
 			</div>
 		{/if}
 	{:else}

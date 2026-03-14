@@ -402,6 +402,12 @@ export async function deleteRecipe(id: number): Promise<boolean> {
 	return d.getRowsModified() > 0;
 }
 
+export async function updateRecipeImage(id: number, imageUrl: string): Promise<void> {
+	const d = await getDb();
+	d.run('UPDATE recipes SET image_url = ? WHERE id = ?', [imageUrl, id]);
+	scheduleSave();
+}
+
 export async function approveRecipes(ids: number[]): Promise<number> {
 	if (ids.length === 0) return 0;
 	const d = await getDb();
