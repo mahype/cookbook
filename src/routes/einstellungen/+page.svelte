@@ -26,12 +26,12 @@
 		}
 	];
 
-	let selected = $state<Set<string>>(new Set(data.cuisinePreferences));
+	let ratings = $state<Record<string, number>>({ ...data.cuisinePreferences });
 
 	// Track which categories are expanded — default: expanded if has selections
 	let expanded = $state<Set<string>>(new Set(
 		cuisineCategories
-			.filter(cat => cat.cuisines.some(c => data.cuisinePreferences.includes(c)))
+			.filter(cat => cat.cuisines.some(c => (ratings[c] ?? 0) > 0))
 			.map(cat => cat.name)
 	));
 
@@ -45,33 +45,39 @@
 		expanded = next;
 	}
 
-	function selectedCount(cuisines: string[]): number {
-		return cuisines.filter(c => selected.has(c)).length;
+	function activeCount(cuisines: string[]): number {
+		return cuisines.filter(c => (ratings[c] ?? 0) > 0).length;
 	}
+
 	let recipeNotes = $state(data.recipeNotes);
 	let saving = $state(false);
 	let savingNotes = $state(false);
 	let message = $state('');
 
-	function toggle(cuisine: string) {
-		const next = new Set(selected);
-		if (next.has(cuisine)) {
-			next.delete(cuisine);
+	function setRating(cuisine: string, star: number) {
+		const current = ratings[cuisine] ?? 0;
+		if (current === star) {
+			// Tap same star again → deselect
+			ratings = { ...ratings, [cuisine]: 0 };
 		} else {
-			next.add(cuisine);
+			ratings = { ...ratings, [cuisine]: star };
 		}
-		selected = next;
-		save(next);
+		save();
 	}
 
-	async function save(current: Set<string>) {
+	async function save() {
 		saving = true;
 		message = '';
 		try {
+			// Send only non-zero ratings
+			const prefs: Record<string, number> = {};
+			for (const [k, v] of Object.entries(ratings)) {
+				if (v > 0) prefs[k] = v;
+			}
 			const res = await fetch('/api/einstellungen', {
 				method: 'PUT',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ cuisine_preferences: Array.from(current) })
+				body: JSON.stringify({ cuisine_preferences: prefs })
 			});
 			if (res.ok) {
 				message = 'Gespeichert!';
@@ -107,21 +113,28 @@
 			savingNotes = false;
 		}
 	}
+
+	function totalActive(): number {
+		return Object.values(ratings).filter(v => v > 0).length;
+	}
 </script>
 
 <div class="max-w-lg mx-auto px-4 pt-6">
 	<h1 class="text-2xl font-bold text-warm-900 mb-2 flex items-center gap-2"><svg class="w-6 h-6 text-warm-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg> Einstellungen</h1>
 	<p class="text-sm text-warm-500 mb-6">
-		Wähle deine bevorzugten Küchen – deine Rezeptvorschläge werden entsprechend gewichtet.
+		Bewerte deine bevorzugten Küchen – deine Rezeptvorschläge werden entsprechend gewichtet.
 	</p>
 
 	<div class="bg-white rounded-2xl shadow-sm border border-warm-100 overflow-hidden">
-		<h2 class="px-5 pt-4 pb-2 text-sm font-semibold text-warm-500 uppercase tracking-wide">
-			Küchen-Präferenzen
-		</h2>
+		<div class="px-5 pt-4 pb-2">
+			<h2 class="text-sm font-semibold text-warm-500 uppercase tracking-wide">
+				Küchen-Präferenzen
+			</h2>
+			<p class="text-xs text-warm-400 mt-1">★ = ab und zu · ★★ = gerne · ★★★ = Favorit</p>
+		</div>
 		{#each cuisineCategories as category}
 			{@const isExpanded = expanded.has(category.name)}
-			{@const count = selectedCount(category.cuisines)}
+			{@const count = activeCount(category.cuisines)}
 			<div class="border-t border-warm-100">
 				<button
 					onclick={() => toggleCategory(category.name)}
@@ -130,7 +143,7 @@
 					<div class="flex items-center gap-2">
 						<span class="text-base font-semibold text-warm-800">{category.name}</span>
 						{#if count > 0}
-							<span class="text-xs font-medium text-spice-600 bg-spice-50 rounded-full px-2 py-0.5">{count}</span>
+							<span class="text-xs font-medium text-spice-600 bg-spice-50 rounded-full px-2 py-0.5">{count} aktiv</span>
 						{/if}
 					</div>
 					<svg
@@ -143,25 +156,24 @@
 				{#if isExpanded}
 					<ul>
 						{#each category.cuisines as cuisine}
-							{@const isSelected = selected.has(cuisine)}
+							{@const rating = ratings[cuisine] ?? 0}
 							<li>
-								<button
-									onclick={() => toggle(cuisine)}
-									class="w-full flex items-center justify-between pl-10 pr-5 py-3.5 min-h-[48px] hover:bg-warm-50 transition-colors active:bg-warm-100"
-								>
+								<div class="flex items-center justify-between pl-10 pr-5 py-3 min-h-[48px]">
 									<span class="text-sm font-medium text-warm-700">{cuisine}</span>
-									<div
-										class="w-12 h-7 rounded-full transition-colors duration-200 flex items-center {isSelected
-											? 'bg-spice-500'
-											: 'bg-warm-200'}"
-									>
-										<div
-											class="w-5.5 h-5.5 bg-white rounded-full shadow-sm transition-transform duration-200 mx-0.5 {isSelected
-												? 'translate-x-5'
-												: 'translate-x-0'}"
-										></div>
+									<div class="flex gap-1">
+										{#each [1, 2, 3] as star}
+											<button
+												onclick={() => setRating(cuisine, star)}
+												class="p-0.5 transition-colors"
+												aria-label="{cuisine} {star} Stern{star > 1 ? 'e' : ''}"
+											>
+												<svg class="w-7 h-7 {rating >= star ? 'text-orange-500' : 'text-warm-300'}" viewBox="0 0 24 24" fill={rating >= star ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="1.5">
+													<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+												</svg>
+											</button>
+										{/each}
 									</div>
-								</button>
+								</div>
 							</li>
 						{/each}
 					</ul>
@@ -222,7 +234,7 @@
 	{/if}
 
 	<p class="text-xs text-warm-400 text-center mt-4 mb-6">
-		{selected.size} {selected.size === 1 ? 'Küche' : 'Küchen'} ausgewählt
+		{totalActive()} {totalActive() === 1 ? 'Küche' : 'Küchen'} ausgewählt
 		{#if saving}· Speichert...{/if}
 	</p>
 </div>

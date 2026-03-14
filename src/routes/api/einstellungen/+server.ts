@@ -2,9 +2,20 @@ import { json } from '@sveltejs/kit';
 import { getPreference, setPreference } from '$lib/server/db';
 import type { RequestHandler } from './$types';
 
-export const GET: RequestHandler = async () => {
+function loadCuisinePreferences(): Record<string, number> {
 	const raw = getPreference('cuisine_preferences');
-	const cuisine_preferences: string[] = raw ? JSON.parse(raw) : [];
+	if (!raw) return {};
+	const parsed = JSON.parse(raw);
+	if (Array.isArray(parsed)) {
+		const obj: Record<string, number> = {};
+		for (const c of parsed) obj[c] = 2;
+		return obj;
+	}
+	return parsed;
+}
+
+export const GET: RequestHandler = async () => {
+	const cuisine_preferences = loadCuisinePreferences();
 	const recipe_notes = getPreference('recipe_notes') ?? '';
 	return json({ cuisine_preferences, recipe_notes });
 };
@@ -13,10 +24,17 @@ export const PUT: RequestHandler = async ({ request }) => {
 	const body = await request.json();
 
 	if ('cuisine_preferences' in body) {
-		if (!Array.isArray(body.cuisine_preferences)) {
-			return json({ error: 'cuisine_preferences muss ein Array sein' }, { status: 400 });
+		let prefs: Record<string, number>;
+		if (Array.isArray(body.cuisine_preferences)) {
+			// Accept old array format for backwards compat
+			prefs = {};
+			for (const c of body.cuisine_preferences) prefs[c] = 2;
+		} else if (typeof body.cuisine_preferences === 'object' && body.cuisine_preferences !== null) {
+			prefs = body.cuisine_preferences;
+		} else {
+			return json({ error: 'cuisine_preferences muss ein Array oder Objekt sein' }, { status: 400 });
 		}
-		setPreference('cuisine_preferences', JSON.stringify(body.cuisine_preferences));
+		setPreference('cuisine_preferences', JSON.stringify(prefs));
 	}
 
 	if ('recipe_notes' in body) {
@@ -26,8 +44,7 @@ export const PUT: RequestHandler = async ({ request }) => {
 		setPreference('recipe_notes', body.recipe_notes);
 	}
 
-	const raw = getPreference('cuisine_preferences');
-	const cuisine_preferences: string[] = raw ? JSON.parse(raw) : [];
+	const cuisine_preferences = loadCuisinePreferences();
 	const recipe_notes = getPreference('recipe_notes') ?? '';
 	return json({ cuisine_preferences, recipe_notes });
 };
