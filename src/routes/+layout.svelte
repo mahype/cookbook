@@ -1,10 +1,21 @@
-<script>
+<script lang="ts">
 	import '../app.css';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
+	import { isCapacitor, loadPreferences } from '$lib/stores/data';
 
 	let { children } = $props();
 	let shoppingCount = $state(0);
+	let showSplash = $state(true);
+	let splashFading = $state(false);
+	let appReady = $state(false);
+
+	// Pages that should hide the nav bar
+	let hideNav = $derived(
+		$page.url.pathname.startsWith('/onboarding') ||
+		$page.url.pathname.startsWith('/planen/')
+	);
 
 	async function fetchShoppingCount() {
 		try {
@@ -18,7 +29,41 @@
 		}
 	}
 
-	onMount(() => {
+	async function checkOnboarding(): Promise<boolean> {
+		try {
+			if (isCapacitor()) {
+				const prefs = await loadPreferences();
+				return !prefs.aiProvider || !prefs.aiProvider.id;
+			} else {
+				const res = await fetch('/api/einstellungen');
+				if (res.ok) {
+					const data = await res.json();
+					if (!data.aiProvider || !data.aiProvider.id) return true;
+				}
+				return false;
+			}
+		} catch {
+			return false;
+		}
+	}
+
+	onMount(async () => {
+		// Show splash for 1.5 seconds
+		setTimeout(() => {
+			splashFading = true;
+			setTimeout(async () => {
+				showSplash = false;
+
+				// Check if onboarding needed
+				const needsOnboarding = await checkOnboarding();
+				if (needsOnboarding && !$page.url.pathname.startsWith('/onboarding')) {
+					goto('/onboarding');
+				}
+
+				appReady = true;
+			}, 400);
+		}, 1200);
+
 		fetchShoppingCount();
 		const interval = setInterval(fetchShoppingCount, 5000);
 		return () => clearInterval(interval);
@@ -32,15 +77,36 @@
 </script>
 
 <svelte:head>
-	<title>Rezept-App</title>
-	<meta name="description" content="Deine täglichen Rezeptvorschläge und Rezeptsammlung" />
+	<title>Cokko</title>
+	<meta name="description" content="Dein persönliches KI-Kochbuch" />
 </svelte:head>
 
+<!-- Splash Screen -->
+{#if showSplash}
+	<div class="fixed inset-0 z-[200] bg-orange-500 flex items-center justify-center transition-opacity duration-400 {splashFading ? 'opacity-0' : 'opacity-100'}">
+		<div class="flex flex-col items-center gap-4">
+			<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="w-28 h-28 drop-shadow-lg">
+				<rect width="512" height="512" rx="112" fill="white" opacity="0.2"/>
+				<path d="M136 240 h240 v20 c0 80 -40 140 -120 150 c-80 -10 -120 -70 -120 -150 z" fill="white"/>
+				<rect x="120" y="228" width="272" height="24" rx="12" fill="white"/>
+				<rect x="96" y="236" width="40" height="12" rx="6" fill="white"/>
+				<rect x="376" y="236" width="40" height="12" rx="6" fill="white"/>
+				<circle cx="256" cy="210" r="14" fill="white"/>
+				<path d="M220 190 c0-20 -15-30 -15-50 c0-15 15-25 15-45" fill="none" stroke="white" stroke-width="10" stroke-linecap="round"/>
+				<path d="M256 180 c0-20 -15-30 -15-50 c0-15 15-25 15-45" fill="none" stroke="white" stroke-width="10" stroke-linecap="round"/>
+				<path d="M292 190 c0-20 -15-30 -15-50 c0-15 15-25 15-45" fill="none" stroke="white" stroke-width="10" stroke-linecap="round"/>
+			</svg>
+			<span class="text-white text-3xl font-bold tracking-wide">Cokko</span>
+		</div>
+	</div>
+{/if}
+
 <div class="min-h-screen flex flex-col bg-warm-50">
-	<main class="flex-1 pb-20 pt-[env(safe-area-inset-top)]">
+	<main class="flex-1 {hideNav ? '' : 'pb-20'} pt-[env(safe-area-inset-top)]">
 		{@render children()}
 	</main>
 
+	{#if !hideNav}
 	<nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-warm-200 z-50 safe-area-bottom">
 		<div class="flex justify-around items-center max-w-lg mx-auto">
 			<a href="/rezepte" class="flex flex-col items-center min-h-[52px] min-w-[56px] justify-center py-2 px-2 transition-colors {$page.url.pathname.startsWith('/rezepte') ? 'text-spice-500' : 'text-warm-600 hover:text-spice-500'}">
@@ -71,6 +137,7 @@
 			</a>
 		</div>
 	</nav>
+	{/if}
 </div>
 
 <style>
