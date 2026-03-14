@@ -226,6 +226,9 @@
 			// Mark onboarding as completed
 			if (isCapacitor()) {
 				await savePreference('onboardingCompleted', '1');
+				// Force persist to IndexedDB before navigating
+				const { forceSave } = await import('$lib/client/db');
+				await forceSave();
 			} else {
 				await fetch('/api/einstellungen', {
 					method: 'PUT',
@@ -534,6 +537,8 @@
 				onclick={async () => {
 					if (isCapacitor()) {
 						await savePreference('onboardingCompleted', '1');
+						const { forceSave } = await import('$lib/client/db');
+						await forceSave();
 					} else {
 						await fetch('/api/einstellungen', {
 							method: 'PUT',
