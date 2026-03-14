@@ -57,14 +57,17 @@
 		pendingIngredient = null;
 		addingIngredient = name;
 		try {
-			const res = await fetch('/api/vorrat', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ name })
-			});
-			if (res.ok || res.status === 409) {
-				onPantryAdd?.(name);
+			if (typeof window !== 'undefined' && (window as any).Capacitor) {
+				const db = await import('$lib/client/db');
+				await db.addPantryItem(name);
+			} else {
+				await fetch('/api/vorrat', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ name })
+				});
 			}
+			onPantryAdd?.(name);
 		} finally {
 			addingIngredient = null;
 		}
@@ -80,14 +83,17 @@
 		pendingRemoveIngredient = null;
 		removingIngredient = name;
 		try {
-			const res = await fetch('/api/vorrat', {
-				method: 'DELETE',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ name })
-			});
-			if (res.ok) {
-				onPantryRemove?.(name);
+			if (typeof window !== 'undefined' && (window as any).Capacitor) {
+				const db = await import('$lib/client/db');
+				await db.removePantryItem({ name });
+			} else {
+				await fetch('/api/vorrat', {
+					method: 'DELETE',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ name })
+				});
 			}
+			onPantryRemove?.(name);
 		} finally {
 			removingIngredient = null;
 		}
@@ -96,30 +102,40 @@
 	async function addToShoppingList(ingredient: { name: string; amount: string; store: string; estimated_price?: number }) {
 		addingToCart = ingredient.name;
 		try {
-			const checkRes = await fetch('/api/einkaufsliste/check', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ ingredient_name: ingredient.name })
-			});
-			const checkData = await checkRes.json();
-			if (checkData.exists) {
-				return;
+			if (typeof window !== 'undefined' && (window as any).Capacitor) {
+				const db = await import('$lib/client/db');
+				const exists = await db.checkShoppingIngredient(ingredient.name);
+				if (exists) return;
+				await db.addShoppingItems([{
+					ingredient_name: ingredient.name,
+					ingredient_amount: ingredient.amount,
+					recipe_name: recipe.name,
+					store: ingredient.store,
+					estimated_price: ingredient.estimated_price || 0
+				}]);
+			} else {
+				const checkRes = await fetch('/api/einkaufsliste/check', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ ingredient_name: ingredient.name })
+				});
+				const checkData = await checkRes.json();
+				if (checkData.exists) return;
+				await fetch('/api/einkaufsliste', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						items: [{
+							ingredient_name: ingredient.name,
+							ingredient_amount: ingredient.amount,
+							recipe_name: recipe.name,
+							store: ingredient.store,
+							estimated_price: ingredient.estimated_price || 0
+						}]
+					})
+				});
 			}
-
-			const res = await fetch('/api/einkaufsliste', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					items: [{
-						ingredient_name: ingredient.name,
-						ingredient_amount: ingredient.amount,
-						recipe_name: recipe.name,
-						store: ingredient.store,
-						estimated_price: ingredient.estimated_price || 0
-					}]
-				})
-			});
-			} finally {
+		} finally {
 			addingToCart = null;
 		}
 	}
@@ -134,13 +150,17 @@
 				store: ing.store,
 				estimated_price: ing.estimated_price || 0
 			}));
-
-			const res = await fetch('/api/einkaufsliste', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ items })
-			});
-			} finally {
+			if (typeof window !== 'undefined' && (window as any).Capacitor) {
+				const db = await import('$lib/client/db');
+				await db.addShoppingItems(items);
+			} else {
+				await fetch('/api/einkaufsliste', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ items })
+				});
+			}
+		} finally {
 			addingAllToCart = false;
 		}
 	}

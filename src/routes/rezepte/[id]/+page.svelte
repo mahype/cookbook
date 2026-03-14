@@ -147,22 +147,27 @@
 		pendingIngredient = name;
 	}
 
+	const cap = typeof window !== 'undefined' && (window as any).Capacitor;
+
 	async function confirmAddToPantry() {
 		if (!pendingIngredient) return;
 		const name = pendingIngredient;
 		pendingIngredient = null;
 		addingIngredient = name;
 		try {
-			const res = await fetch('/api/vorrat', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ name })
-			});
-			if (res.ok || res.status === 409) {
-				const lower = name.toLowerCase();
-				if (!pantryNames.includes(lower)) {
-					pantryNames = [...pantryNames, lower];
-				}
+			if (cap) {
+				const db = await import('$lib/client/db');
+				await db.addPantryItem(name);
+			} else {
+				await fetch('/api/vorrat', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ name })
+				});
+			}
+			const lower = name.toLowerCase();
+			if (!pantryNames.includes(lower)) {
+				pantryNames = [...pantryNames, lower];
 			}
 		} finally {
 			addingIngredient = null;
@@ -179,14 +184,17 @@
 		pendingRemoveIngredient = null;
 		removingIngredient = name;
 		try {
-			const res = await fetch('/api/vorrat', {
-				method: 'DELETE',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ name })
-			});
-			if (res.ok) {
-				pantryNames = pantryNames.filter((p) => p !== name.toLowerCase());
+			if (cap) {
+				const db = await import('$lib/client/db');
+				await db.removePantryItem({ name });
+			} else {
+				await fetch('/api/vorrat', {
+					method: 'DELETE',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ name })
+				});
 			}
+			pantryNames = pantryNames.filter((p) => p !== name.toLowerCase());
 		} finally {
 			removingIngredient = null;
 		}
@@ -195,30 +203,40 @@
 	async function addToShoppingList(ingredient: { name: string; amount: string; store: string; estimated_price?: number }) {
 		addingToCart = ingredient.name;
 		try {
-			const checkRes = await fetch('/api/einkaufsliste/check', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ ingredient_name: ingredient.name })
-			});
-			const checkData = await checkRes.json();
-			if (checkData.exists) {
-				return;
+			if (cap) {
+				const db = await import('$lib/client/db');
+				const exists = await db.checkShoppingIngredient(ingredient.name);
+				if (exists) return;
+				await db.addShoppingItems([{
+					ingredient_name: ingredient.name,
+					ingredient_amount: ingredient.amount,
+					recipe_name: recipe.name,
+					store: ingredient.store,
+					estimated_price: ingredient.estimated_price || 0
+				}]);
+			} else {
+				const checkRes = await fetch('/api/einkaufsliste/check', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ ingredient_name: ingredient.name })
+				});
+				const checkData = await checkRes.json();
+				if (checkData.exists) return;
+				await fetch('/api/einkaufsliste', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						items: [{
+							ingredient_name: ingredient.name,
+							ingredient_amount: ingredient.amount,
+							recipe_name: recipe.name,
+							store: ingredient.store,
+							estimated_price: ingredient.estimated_price || 0
+						}]
+					})
+				});
 			}
-
-			const res = await fetch('/api/einkaufsliste', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					items: [{
-						ingredient_name: ingredient.name,
-						ingredient_amount: ingredient.amount,
-						recipe_name: recipe.name,
-						store: ingredient.store,
-						estimated_price: ingredient.estimated_price || 0
-					}]
-				})
-			});
-			} finally {
+		} finally {
 			addingToCart = null;
 		}
 	}
@@ -233,23 +251,32 @@
 				store: ing.store,
 				estimated_price: ing.estimated_price || 0
 			}));
-
-			const res = await fetch('/api/einkaufsliste', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ items })
-			});
-			} finally {
+			if (cap) {
+				const db = await import('$lib/client/db');
+				await db.addShoppingItems(items);
+			} else {
+				await fetch('/api/einkaufsliste', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ items })
+				});
+			}
+		} finally {
 			addingAllToCart = false;
 		}
 	}
 
 	async function deleteRecipe() {
 		deleting = true;
-		const res = await fetch(`/api/rezepte/${recipe.id}`, { method: 'DELETE' });
-		if (res.ok) {
+		try {
+			if (cap) {
+				const db = await import('$lib/client/db');
+				await db.deleteRecipe(recipe.id);
+			} else {
+				await fetch(`/api/rezepte/${recipe.id}`, { method: 'DELETE' });
+			}
 			goto('/rezepte');
-		} else {
+		} catch {
 			deleting = false;
 			showDeleteDialog = false;
 		}

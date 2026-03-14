@@ -85,13 +85,22 @@
 		});
 	});
 
+	const cap = typeof window !== 'undefined' && (window as any).Capacitor;
+
 	async function toggleItem(id: number) {
 		toggling = id;
 		try {
-			const res = await fetch(`/api/einkaufsliste/${id}`, { method: 'PATCH' });
-			if (res.ok) {
-				const data = await res.json();
-				items = items.map((i) => (i.id === id ? { ...i, checked: data.checked } : i));
+			if (cap) {
+				const db = await import('$lib/client/db');
+				await db.toggleShoppingItem(id);
+				const item = items.find((i) => i.id === id);
+				if (item) items = items.map((i) => (i.id === id ? { ...i, checked: !i.checked } : i));
+			} else {
+				const res = await fetch(`/api/einkaufsliste/${id}`, { method: 'PATCH' });
+				if (res.ok) {
+					const data = await res.json();
+					items = items.map((i) => (i.id === id ? { ...i, checked: data.checked } : i));
+				}
 			}
 		} finally {
 			toggling = null;
@@ -101,28 +110,37 @@
 	async function deleteItem(id: number) {
 		deleting = id;
 		try {
-			const res = await fetch(`/api/einkaufsliste/${id}`, { method: 'DELETE' });
-			if (res.ok) {
-				items = items.filter((i) => i.id !== id);
+			if (cap) {
+				const db = await import('$lib/client/db');
+				await db.deleteShoppingItem(id);
+			} else {
+				await fetch(`/api/einkaufsliste/${id}`, { method: 'DELETE' });
 			}
+			items = items.filter((i) => i.id !== id);
 		} finally {
 			deleting = null;
 		}
 	}
 
 	async function clearChecked() {
-		const res = await fetch('/api/einkaufsliste', { method: 'DELETE' });
-		if (res.ok) {
-			items = items.filter((i) => !i.checked);
+		if (cap) {
+			const db = await import('$lib/client/db');
+			await db.clearShoppingList(true); // true = only checked
+		} else {
+			await fetch('/api/einkaufsliste', { method: 'DELETE' });
 		}
+		items = items.filter((i) => !i.checked);
 	}
 
 	async function clearAll() {
 		showClearAllDialog = false;
-		const res = await fetch('/api/einkaufsliste?all=true', { method: 'DELETE' });
-		if (res.ok) {
-			items = [];
+		if (cap) {
+			const db = await import('$lib/client/db');
+			await db.clearShoppingList(false); // false = delete all
+		} else {
+			await fetch('/api/einkaufsliste?all=true', { method: 'DELETE' });
 		}
+		items = [];
 	}
 
 	// --- Vorrat state ---
@@ -133,30 +151,46 @@
 	async function addPantryItem() {
 		const name = newItem.trim();
 		if (!name) return;
-
 		pantryError = '';
-		const res = await fetch('/api/vorrat', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ name })
-		});
 
-		if (res.ok) {
-			const item = await res.json();
-			pantryItems = [...pantryItems, item].sort((a, b) => a.name.localeCompare(b.name, 'de'));
-			newItem = '';
-		} else {
-			const data = await res.json();
-			pantryError = data.error || 'Fehler beim Hinzufügen';
+		try {
+			if (cap) {
+				const db = await import('$lib/client/db');
+				const result = await db.addPantryItem(name);
+				if (!result) { pantryError = 'Bereits vorhanden'; return; }
+				pantryItems = [...pantryItems, result].sort((a, b) => a.name.localeCompare(b.name, 'de'));
+				newItem = '';
+			} else {
+				const res = await fetch('/api/vorrat', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ name })
+				});
+				if (res.ok) {
+					const item = await res.json();
+					pantryItems = [...pantryItems, item].sort((a, b) => a.name.localeCompare(b.name, 'de'));
+					newItem = '';
+				} else {
+					const data = await res.json();
+					pantryError = data.error || 'Fehler beim Hinzufügen';
+				}
+			}
+		} catch (e: any) {
+			pantryError = e.message || 'Fehler beim Hinzufügen';
 		}
 	}
 
 	async function removePantryItem(id: number) {
-		await fetch('/api/vorrat', {
-			method: 'DELETE',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ id })
-		});
+		if (cap) {
+			const db = await import('$lib/client/db');
+			await db.removePantryItem({ id });
+		} else {
+			await fetch('/api/vorrat', {
+				method: 'DELETE',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ id })
+			});
+		}
 		pantryItems = pantryItems.filter((i) => i.id !== id);
 	}
 
