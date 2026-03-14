@@ -64,9 +64,13 @@
 
 	let defaultServings = $state(data.defaultServings ?? 2);
 	let recipeNotes = $state(data.recipeNotes ?? '');
-	let saving = $state(false);
-	let savingNotes = $state(false);
-	let message = $state('');
+	let cuisineState: 'idle' | 'loading' | 'success' | 'error' = $state('idle');
+	let notesState: 'idle' | 'loading' | 'success' | 'error' = $state('idle');
+
+	type ButtonState = 'idle' | 'loading' | 'success' | 'error';
+	function resetAfterDelay(setter: (s: ButtonState) => void) {
+		setTimeout(() => setter('idle'), 1500);
+	}
 
 	function setRating(cuisine: string, star: number) {
 		const current = ratings[cuisine] ?? 0;
@@ -80,8 +84,7 @@
 	}
 
 	async function save() {
-		saving = true;
-		message = '';
+		cuisineState = 'loading';
 		try {
 			const prefs: Record<string, number> = {};
 			for (const [k, v] of Object.entries(ratings)) {
@@ -95,20 +98,17 @@
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({ cuisine_preferences: prefs })
 				});
-				if (!res.ok) { message = 'Fehler beim Speichern'; return; }
+				if (!res.ok) { cuisineState = 'error'; resetAfterDelay(s => cuisineState = s); return; }
 			}
-			message = 'Gespeichert!';
-			setTimeout(() => (message = ''), 2000);
+			cuisineState = 'success';
 		} catch {
-			message = 'Netzwerkfehler';
-		} finally {
-			saving = false;
+			cuisineState = 'error';
 		}
+		resetAfterDelay(s => cuisineState = s);
 	}
 
 	async function saveNotes() {
-		savingNotes = true;
-		message = '';
+		notesState = 'loading';
 		try {
 			if (isCapacitor()) {
 				await savePreference('recipeNotes', recipeNotes);
@@ -118,15 +118,13 @@
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({ recipe_notes: recipeNotes })
 				});
-				if (!res.ok) { message = 'Fehler beim Speichern'; return; }
+				if (!res.ok) { notesState = 'error'; resetAfterDelay(s => notesState = s); return; }
 			}
-			message = 'Gespeichert!';
-			setTimeout(() => (message = ''), 2000);
+			notesState = 'success';
 		} catch {
-			message = 'Netzwerkfehler';
-		} finally {
-			savingNotes = false;
+			notesState = 'error';
 		}
+		resetAfterDelay(s => notesState = s);
 	}
 
 	async function saveServings(value: number) {
@@ -171,9 +169,9 @@
 	let aiBaseUrl = $state(data.aiProvider?.baseUrl ?? '');
 	let showApiKey = $state(false);
 	let showAdvanced = $state(false);
-	let aiTesting = $state(false);
+	let aiTestState: ButtonState = $state('idle');
 	let aiTestResult = $state<{ success: boolean; error?: string; model?: string } | null>(null);
-	let aiSaving = $state(false);
+	let aiSaveState: ButtonState = $state('idle');
 
 	function selectProvider(id: string) {
 		const p = providerList.find(p => p.id === id);
@@ -187,7 +185,7 @@
 
 	async function saveAI() {
 		if (!aiProviderId) return;
-		aiSaving = true;
+		aiSaveState = 'loading';
 		try {
 			const aiProvider = {
 				id: aiProviderId,
@@ -205,17 +203,15 @@
 					body: JSON.stringify({ ai_provider: aiProvider })
 				});
 			}
-			message = 'KI-Einstellungen gespeichert!';
-			setTimeout(() => (message = ''), 2000);
+			aiSaveState = 'success';
 		} catch {
-			message = 'Fehler beim Speichern';
-		} finally {
-			aiSaving = false;
+			aiSaveState = 'error';
 		}
+		resetAfterDelay(s => aiSaveState = s);
 	}
 
 	async function testAI() {
-		aiTesting = true;
+		aiTestState = 'loading';
 		aiTestResult = null;
 		try {
 			if (isCapacitor()) {
@@ -236,11 +232,12 @@
 				});
 				aiTestResult = await res.json();
 			}
+			aiTestState = aiTestResult?.success ? 'success' : 'error';
 		} catch {
 			aiTestResult = { success: false, error: 'Netzwerkfehler' };
-		} finally {
-			aiTesting = false;
+			aiTestState = 'error';
 		}
+		resetAfterDelay(s => aiTestState = s);
 	}
 
 	async function testAIDirect(): Promise<{ success: boolean; error?: string; model?: string }> {
@@ -400,14 +397,34 @@
 				<div class="flex gap-2 mt-4">
 					<button
 						onclick={testAI}
-						disabled={aiTesting}
-						class="flex-1 py-2.5 rounded-xl text-sm font-semibold border-2 border-spice-500 text-spice-600 hover:bg-spice-50 transition-colors disabled:opacity-50"
-					>{aiTesting ? 'Teste...' : 'Verbindung testen'}</button>
+						disabled={aiTestState === 'loading'}
+						class="flex-1 py-2.5 rounded-xl text-sm font-semibold border-2 min-w-[140px] flex items-center justify-center transition-colors disabled:opacity-50 {aiTestState === 'success' ? 'border-green-500 bg-green-50 text-green-600' : aiTestState === 'error' ? 'border-red-500 bg-red-50 text-red-600' : 'border-spice-500 text-spice-600 hover:bg-spice-50'}"
+					>
+						{#if aiTestState === 'loading'}
+							<svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+						{:else if aiTestState === 'success'}
+							<svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+						{:else if aiTestState === 'error'}
+							<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+						{:else}
+							Verbindung testen
+						{/if}
+					</button>
 					<button
 						onclick={saveAI}
-						disabled={aiSaving}
-						class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-spice-500 hover:bg-spice-600 transition-colors disabled:opacity-50"
-					>{aiSaving ? 'Speichert...' : 'Speichern'}</button>
+						disabled={aiSaveState === 'loading'}
+						class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white min-w-[120px] flex items-center justify-center transition-colors disabled:opacity-50 {aiSaveState === 'success' ? 'bg-green-500' : aiSaveState === 'error' ? 'bg-red-500' : 'bg-spice-500 hover:bg-spice-600'}"
+					>
+						{#if aiSaveState === 'loading'}
+							<svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+						{:else if aiSaveState === 'success'}
+							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+						{:else if aiSaveState === 'error'}
+							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+						{:else}
+							Speichern
+						{/if}
+					</button>
 				</div>
 
 				<!-- Test result -->
@@ -494,10 +511,18 @@
 			></textarea>
 			<button
 				onclick={saveNotes}
-				disabled={savingNotes}
-				class="mt-3 w-full py-2.5 rounded-xl text-sm font-semibold text-white bg-spice-500 hover:bg-spice-600 active:bg-spice-700 transition-colors disabled:opacity-50"
+				disabled={notesState === 'loading'}
+				class="mt-3 w-full py-2.5 rounded-xl text-sm font-semibold text-white min-h-[42px] flex items-center justify-center transition-colors disabled:opacity-50 {notesState === 'success' ? 'bg-green-500' : notesState === 'error' ? 'bg-red-500' : 'bg-spice-500 hover:bg-spice-600 active:bg-spice-700'}"
 			>
-				{savingNotes ? 'Speichert...' : 'Wünsche speichern'}
+				{#if notesState === 'loading'}
+					<svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+				{:else if notesState === 'success'}
+					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+				{:else if notesState === 'error'}
+					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+				{:else}
+					Wünsche speichern
+				{/if}
 			</button>
 		</div>
 	</div>
@@ -522,18 +547,8 @@
 		</div>
 	</a>
 
-	{#if message}
-		<div
-			class="fixed top-[calc(env(safe-area-inset-top)+8px)] left-4 right-4 z-[100] text-center text-sm font-medium py-3 px-4 rounded-xl shadow-lg transition-all {message.includes('Fehler') || message.includes('Netzwerk')
-				? 'bg-red-500 text-white'
-				: 'bg-herb-500 text-white'}"
-		>
-			{message}
-		</div>
-	{/if}
-
 	<p class="text-xs text-warm-400 text-center mt-4 mb-6">
 		{totalActive()} {totalActive() === 1 ? 'Küche' : 'Küchen'} ausgewählt
-		{#if saving}· Speichert...{/if}
+		{#if cuisineState === 'loading'}· Speichert...{/if}
 	</p>
 </div>
