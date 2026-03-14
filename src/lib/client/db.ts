@@ -875,7 +875,14 @@ export async function getDailySuggestions(
 	}
 
 	const recipeIds: number[] = JSON.parse(suggestion.recipe_ids);
-	const recipes = await getRecipesByIds(recipeIds);
+	if (recipeIds.length === 0) return { date: targetDate, recipes: [] };
+	// Only show recipes that are still suggestions (not yet approved or deleted)
+	const placeholders = recipeIds.map(() => '?').join(',');
+	const recipes = rowsToObjects<Recipe>(
+		d,
+		`SELECT * FROM recipes WHERE id IN (${placeholders}) AND status = 'vorschlag'`,
+		recipeIds
+	);
 	return { date: targetDate, recipes };
 }
 
