@@ -333,9 +333,13 @@
 			<div class="space-y-4 mb-6">
 				{#each localData.suggestionRecipes ?? [] as recipe (recipe.id)}
 					<div class="relative">
+						<div class="absolute -right-2 z-10 flex flex-col gap-2" style="top: -8px;">
+							<!-- Approve button is inside RecipeCard -->
+						</div>
+						<!-- Delete button bottom-right of card -->
 						<button
 							onclick={() => (deleteTarget = recipe)}
-							class="absolute -top-2 -right-2 z-10 w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center text-red-400 hover:bg-red-500 hover:text-white active:bg-red-600 active:text-white transition-colors"
+							class="absolute bottom-3 right-3 z-10 w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center text-warm-400 hover:bg-red-500 hover:text-white active:bg-red-600 active:text-white transition-colors"
 							aria-label="Rezept verwerfen"
 						>
 							<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
