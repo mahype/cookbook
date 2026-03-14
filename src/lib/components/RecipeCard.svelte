@@ -28,8 +28,23 @@
 	let approved = $state(recipe.status === 'approved');
 	let approving = $state(false);
 
-	function toggleDetails() {
+	let lastToggle = 0;
+	function toggleDetails(e: Event) {
+		e.preventDefault();
+		// Debounce: prevent double-fire from touchend + click
+		const now = Date.now();
+		if (now - lastToggle < 300) return;
+		lastToggle = now;
 		expanded = !expanded;
+	}
+
+	let lastDismiss = 0;
+	function handleDismiss(e: Event) {
+		e.preventDefault();
+		const now = Date.now();
+		if (now - lastDismiss < 300) return;
+		lastDismiss = now;
+		if (onDismiss) onDismiss(recipe);
 	}
 
 	async function approveRecipe(e: Event) {
@@ -200,11 +215,15 @@
 	</div>
 
 	<!-- Action bar: Details + Delete -->
-	<div class="border-t border-warm-100 flex">
-		<button
-			type="button"
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div class="border-t border-warm-100 flex" style="-webkit-touch-callout: none; -webkit-tap-highlight-color: rgba(0,0,0,0.1);">
+		<div
+			role="button"
+			tabindex="0"
 			onclick={toggleDetails}
-			class="flex-1 flex items-center justify-center gap-1.5 py-3.5 min-h-[44px] text-sm font-semibold bg-orange-500 text-white active:bg-orange-700 transition-colors"
+			ontouchend={toggleDetails}
+			class="flex-1 flex items-center justify-center gap-1.5 py-3.5 min-h-[44px] text-sm font-semibold bg-orange-500 text-white active:bg-orange-700 cursor-pointer select-none"
+			style="touch-action: manipulation; -webkit-user-select: none;"
 		>
 			<span>{expanded ? 'Zuklappen' : 'Details anzeigen'}</span>
 			<svg
@@ -215,18 +234,21 @@
 			>
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
 			</svg>
-		</button>
+		</div>
 		{#if (dismissable || !approvable) && onDismiss}
-			<button
-				type="button"
-				onclick={() => onDismiss(recipe)}
-				class="w-12 flex items-center justify-center bg-orange-500 active:bg-red-600 text-white transition-colors border-l border-orange-400"
+			<div
+				role="button"
+				tabindex="0"
+				onclick={handleDismiss}
+				ontouchend={handleDismiss}
+				class="w-12 flex items-center justify-center bg-orange-500 active:bg-red-600 text-white cursor-pointer select-none border-l border-orange-400"
+				style="touch-action: manipulation; -webkit-user-select: none;"
 				aria-label="Rezept löschen"
 			>
 				<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
 				</svg>
-			</button>
+			</div>
 		{/if}
 	</div>
 
