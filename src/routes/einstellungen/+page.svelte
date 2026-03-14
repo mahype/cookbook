@@ -398,7 +398,7 @@
 					<button
 						onclick={testAI}
 						disabled={aiTestState === 'loading'}
-						class="flex-1 py-2.5 rounded-xl text-sm font-semibold border-2 min-w-[140px] flex items-center justify-center transition-colors disabled:opacity-50 {aiTestState === 'success' ? 'border-green-500 bg-green-500 text-white' : aiTestState === 'error' ? 'border-red-500 bg-red-500 text-white' : 'border-spice-500 text-spice-600 hover:bg-spice-50'}"
+						class="flex-1 py-2.5 rounded-xl text-sm font-semibold border-2 min-w-[140px] flex items-center justify-center transition-colors disabled:opacity-50 {aiTestState === 'success' ? 'border-green-500 bg-white text-green-600' : aiTestState === 'error' ? 'border-red-500 bg-white text-red-600' : 'border-spice-500 text-spice-600 hover:bg-spice-50'}"
 					>
 						{#if aiTestState === 'loading'}
 							<svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
