@@ -32,6 +32,7 @@ function initDb(db: Database.Database) {
 			shopping_tags TEXT NOT NULL DEFAULT '[]',
 			store_category TEXT DEFAULT '',
 			status TEXT NOT NULL DEFAULT 'vorschlag' CHECK(status IN ('vorschlag', 'approved')),
+			raw_input TEXT DEFAULT '',
 			created_at TEXT NOT NULL DEFAULT (datetime('now'))
 		);
 
@@ -92,6 +93,9 @@ function initDb(db: Database.Database) {
 	const columns = db.prepare("PRAGMA table_info(recipes)").all() as { name: string }[];
 	if (!columns.some(c => c.name === 'pantry_based')) {
 		db.exec("ALTER TABLE recipes ADD COLUMN pantry_based INTEGER NOT NULL DEFAULT 0");
+	}
+	if (!columns.some(c => c.name === 'raw_input')) {
+		db.exec("ALTER TABLE recipes ADD COLUMN raw_input TEXT DEFAULT ''");
 	}
 }
 

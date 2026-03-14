@@ -266,8 +266,22 @@
 		{#if fabOpen}
 			<div class="bg-white rounded-2xl shadow-lg border border-warm-200 overflow-hidden animate-fade-in-down min-w-[180px]">
 				<a
-					href="/planen"
+					href="/rezepte/neu"
 					class="flex items-center gap-3 px-4 py-3 hover:bg-warm-50 transition-colors"
+				>
+					<span class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+						<svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+							<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+							<path d="M14 2v6h6" />
+							<line x1="12" y1="18" x2="12" y2="12" />
+							<line x1="9" y1="15" x2="15" y2="15" />
+						</svg>
+					</span>
+					<span class="text-sm font-medium text-warm-800">Rezept hinzufügen</span>
+				</a>
+				<a
+					href="/planen"
+					class="flex items-center gap-3 px-4 py-3 hover:bg-warm-50 transition-colors border-t border-warm-100"
 				>
 					<span class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
 						<svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
