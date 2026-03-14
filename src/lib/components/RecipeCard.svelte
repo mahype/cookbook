@@ -7,18 +7,24 @@
 		recipe: Recipe;
 		approvable?: boolean;
 		expandable?: boolean;
+		dismissable?: boolean;
 		pantryNames?: string[];
 		onPantryAdd?: (name: string) => void;
 		onPantryRemove?: (name: string) => void;
+		onDismiss?: (recipe: Recipe) => void;
+		onApproved?: (recipe: Recipe) => void;
 	};
 
 	let {
 		recipe,
 		approvable = false,
 		expandable = false,
+		dismissable = false,
 		pantryNames = [],
 		onPantryAdd,
-		onPantryRemove
+		onPantryRemove,
+		onDismiss,
+		onApproved,
 	}: Props = $props();
 
 	let expanded = $state(false);
@@ -39,6 +45,9 @@
 			});
 			if (res.ok) {
 				approved = true;
+				if (onApproved) {
+					setTimeout(() => onApproved(recipe), 1500);
+				}
 			}
 		} catch {
 			// error silently handled
@@ -182,10 +191,10 @@
 	</a>
 
 	{#if expandable}
-		<div class="border-t border-warm-100">
+		<div class="border-t border-warm-100 flex">
 			<button
 				onclick={() => (expanded = !expanded)}
-				class="w-full flex items-center justify-center gap-1.5 py-3.5 min-h-[44px] text-sm font-semibold bg-orange-500 text-white hover:bg-orange-600 transition-colors"
+				class="flex-1 flex items-center justify-center gap-1.5 py-3.5 min-h-[44px] text-sm font-semibold bg-orange-500 text-white hover:bg-orange-600 transition-colors {dismissable ? 'rounded-bl-none' : ''}"
 			>
 				<span>{expanded ? 'Zuklappen' : 'Details anzeigen'}</span>
 				<svg
@@ -202,6 +211,17 @@
 					/>
 				</svg>
 			</button>
+			{#if dismissable && onDismiss}
+				<button
+					onclick={(e) => { e.preventDefault(); e.stopPropagation(); onDismiss(recipe); }}
+					class="w-12 flex items-center justify-center bg-orange-500 hover:bg-red-500 text-white transition-colors border-l border-orange-400"
+					aria-label="Rezept verwerfen"
+				>
+					<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+					</svg>
+				</button>
+			{/if}
 		</div>
 		{#if expanded}
 			<div class="border-t border-warm-100" transition:slide={{ duration: 200 }}>

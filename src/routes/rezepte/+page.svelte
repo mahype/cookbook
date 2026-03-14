@@ -332,27 +332,34 @@
 		{:else}
 			<div class="space-y-4 mb-6">
 				{#each localData.suggestionRecipes ?? [] as recipe (recipe.id)}
-					<div class="relative">
-						<div class="absolute -right-2 z-10 flex flex-col gap-2" style="top: -8px;">
-							<!-- Approve button is inside RecipeCard -->
-						</div>
-						<!-- Delete button bottom-right of card -->
-						<button
-							onclick={() => (deleteTarget = recipe)}
-							class="absolute bottom-3 right-3 z-10 w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center text-warm-400 hover:bg-red-500 hover:text-white active:bg-red-600 active:text-white transition-colors"
-							aria-label="Rezept verwerfen"
-						>
-							<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-							</svg>
-						</button>
+					<div class="relative transition-all duration-500" id="suggestion-{recipe.id}">
 						<RecipeCard
 							{recipe}
 							approvable={true}
 							expandable={true}
+							dismissable={true}
 							{pantryNames}
 							onPantryAdd={handlePantryAdd}
 							onPantryRemove={handlePantryRemove}
+							onDismiss={(r) => (deleteTarget = r)}
+							onApproved={(r) => {
+								const el = document.getElementById(`suggestion-${r.id}`);
+								if (el) {
+									el.style.opacity = '0';
+									el.style.maxHeight = el.scrollHeight + 'px';
+									setTimeout(() => {
+										el.style.maxHeight = '0';
+										el.style.marginBottom = '0';
+										el.style.overflow = 'hidden';
+									}, 300);
+									setTimeout(() => {
+										localData = {
+											...localData,
+											suggestionRecipes: (localData.suggestionRecipes ?? []).filter(s => s.id !== r.id)
+										};
+									}, 800);
+								}
+							}}
 						/>
 					</div>
 				{/each}
