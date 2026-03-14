@@ -483,6 +483,12 @@ export async function approveRecipes(ids: number[]): Promise<number> {
 	return d.getRowsModified();
 }
 
+export async function approveRecipe(id: number): Promise<void> {
+	const d = await getDb();
+	d.run(`UPDATE recipes SET status = 'approved' WHERE id = ? AND status = 'vorschlag'`, [id]);
+	scheduleSave();
+}
+
 // ============================================================
 // Pantry CRUD
 // ============================================================

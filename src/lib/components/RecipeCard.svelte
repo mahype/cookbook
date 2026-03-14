@@ -38,12 +38,20 @@
 		approving = true;
 
 		try {
-			const res = await fetch('/api/rezepte/approve', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ ids: [recipe.id] })
-			});
-			if (res.ok) {
+			let ok = false;
+			if (typeof window !== 'undefined' && (window as any).Capacitor) {
+				const db = await import('$lib/client/db');
+				await db.approveRecipe(recipe.id);
+				ok = true;
+			} else {
+				const res = await fetch('/api/rezepte/approve', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ ids: [recipe.id] })
+				});
+				ok = res.ok;
+			}
+			if (ok) {
 				approved = true;
 				if (onApproved) {
 					setTimeout(() => onApproved(recipe), 1500);
