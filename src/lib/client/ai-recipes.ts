@@ -12,6 +12,7 @@ export interface GenerateOptions {
 	cuisinePrefs: Record<string, number>;
 	recipeNotes: string;
 	servings: number;
+	healthConditions?: string[];
 }
 
 export async function generateRecipes(
@@ -26,11 +27,39 @@ export async function generateRecipes(
 			.map(([k]) => k)
 			.join(', ') || 'international';
 
+	// Map health condition IDs to human-readable constraints
+	const healthLabels: Record<string, string> = {
+		diabetes_typ1: 'Diabetes Typ 1 (wenig schnelle Kohlenhydrate, kein Zucker)',
+		diabetes_typ2: 'Diabetes Typ 2 (kohlenhydratarm, kein Zucker, Vollkorn bevorzugen)',
+		laktoseintoleranz: 'Laktoseintoleranz (keine Milchprodukte oder nur laktosefreie)',
+		glutenunvertraeglichkeit: 'Glutenunverträglichkeit/Zöliakie (kein Weizen, Roggen, Gerste, Dinkel)',
+		fruktoseintoleranz: 'Fruktoseintoleranz (wenig Obst, kein Honig, kein Agavendicksaft)',
+		histaminintoleranz: 'Histaminintoleranz (keine gereiften Lebensmittel, kein Alkohol, keine Tomaten)',
+		nussallergie: 'Nussallergie (keine Nüsse, kein Erdnussöl, keine Mandeln)',
+		sojaallergie: 'Sojaallergie (keine Sojaprodukte, kein Tofu, keine Sojasauce)',
+		fischallergie: 'Fisch-/Meeresfrüchte-Allergie (kein Fisch, keine Garnelen, keine Fischsauce)',
+		eiallergie: 'Eiallergie (keine Eier in jeglicher Form)',
+		bluthochdruck: 'Bluthochdruck (salzarm kochen, keine stark gesalzenen Zutaten)',
+		gicht: 'Gicht (purinarm, kein Innereien, wenig Fleisch, kein Alkohol)',
+		nierenerkrankung: 'Nierenerkrankung (kaliumarm, phosphatarm, eiweißreduziert)',
+		reizdarmsyndrom: 'Reizdarmsyndrom/FODMAP (keine Zwiebeln, kein Knoblauch, kein Weizen, wenig Hülsenfrüchte)',
+		cholesterin: 'Hoher Cholesterinspiegel (wenig gesättigte Fette, keine Butter, fettarmes Fleisch)',
+		schwangerschaft: 'Schwangerschaft (kein Rohmilchkäse, kein rohes Fleisch/Fisch, keine Leber)'
+	};
+
+	const healthConstraints = (opts.healthConditions ?? [])
+		.map(id => healthLabels[id])
+		.filter(Boolean);
+
+	const healthSection = healthConstraints.length > 0
+		? `\n\nWICHTIG – Gesundheitliche Einschränkungen (MUSS beachtet werden!):\n${healthConstraints.map(c => `- ${c}`).join('\n')}\nAlle Rezepte MÜSSEN diese Einschränkungen berücksichtigen. Verwende KEINE verbotenen Zutaten.`
+		: '';
+
 	const prompt = `Generiere ${opts.count} Rezepte als JSON-Array. ${opts.pantryBased} davon sollen möglichst viele dieser Vorräte verwenden: ${pantryList}.
 
 Bevorzugte Küchen: ${favCuisines}
 Wünsche: ${opts.recipeNotes || 'Abwechslung'}
-Portionen: ${opts.servings}
+Portionen: ${opts.servings}${healthSection}
 
 Jedes Rezept als JSON-Objekt mit:
 - name: string

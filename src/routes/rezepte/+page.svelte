@@ -201,7 +201,8 @@
 					pantryItems: pantryItemsList,
 					cuisinePrefs: prefs.cuisinePreferences ?? {},
 					recipeNotes: prefs.recipeNotes ?? '',
-					servings: prefs.defaultServings ?? 2
+					servings: prefs.defaultServings ?? 2,
+					healthConditions: prefs.healthConditions ?? []
 				},
 				aiProviderConfig
 			);
