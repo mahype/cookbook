@@ -192,7 +192,7 @@
 				return;
 			}
 
-			generateProgress = 'Generiere 5 Rezepte...';
+			generateProgress = 'Rezept 1/5 wird generiert...';
 
 			const recipes = await generateRecipes(
 				{
@@ -202,7 +202,16 @@
 					cuisinePrefs: prefs.cuisinePreferences ?? {},
 					recipeNotes: prefs.recipeNotes ?? '',
 					servings: prefs.defaultServings ?? 2,
-					healthConditions: prefs.healthConditions ?? []
+					healthConditions: prefs.healthConditions ?? [],
+					onProgress: (current, total, recipe) => {
+						if (recipe) {
+							generateProgress = current < total
+								? `${recipe.name} ✓ — Rezept ${current + 1}/${total} wird generiert...`
+								: `${recipe.name} ✓ — Speichere...`;
+						} else {
+							generateProgress = `Rezept ${current}/${total} wird generiert...`;
+						}
+					}
 				},
 				aiProviderConfig
 			);
