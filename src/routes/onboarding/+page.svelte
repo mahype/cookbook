@@ -157,11 +157,43 @@
 		defaultServings = Math.min(12, Math.max(1, defaultServings + delta));
 	}
 
+	// --- Step 2: Health Conditions ---
+	const healthConditionOptions = [
+		{ id: 'diabetes_typ1', label: 'Diabetes Typ 1', icon: '💉' },
+		{ id: 'diabetes_typ2', label: 'Diabetes Typ 2', icon: '🩸' },
+		{ id: 'laktoseintoleranz', label: 'Laktoseintoleranz', icon: '🥛' },
+		{ id: 'glutenunvertraeglichkeit', label: 'Glutenunverträglichkeit / Zöliakie', icon: '🌾' },
+		{ id: 'fruktoseintoleranz', label: 'Fruktoseintoleranz', icon: '🍎' },
+		{ id: 'histaminintoleranz', label: 'Histaminintoleranz', icon: '⚠️' },
+		{ id: 'nussallergie', label: 'Nussallergie', icon: '🥜' },
+		{ id: 'sojaallergie', label: 'Sojaallergie', icon: '🫘' },
+		{ id: 'fischallergie', label: 'Fisch-/Meeresfrüchte-Allergie', icon: '🐟' },
+		{ id: 'eiallergie', label: 'Eiallergie', icon: '🥚' },
+		{ id: 'bluthochdruck', label: 'Bluthochdruck (salzarm)', icon: '❤️' },
+		{ id: 'gicht', label: 'Gicht (purinarm)', icon: '🦶' },
+		{ id: 'nierenerkrankung', label: 'Nierenerkrankung', icon: '🫘' },
+		{ id: 'reizdarmsyndrom', label: 'Reizdarmsyndrom (FODMAP)', icon: '🫄' },
+		{ id: 'cholesterin', label: 'Hoher Cholesterinspiegel', icon: '🫀' },
+		{ id: 'schwangerschaft', label: 'Schwangerschaft', icon: '🤰' },
+	];
+
+	let healthConditions = $state<string[]>([]);
+
+	function toggleHealthCondition(id: string) {
+		if (healthConditions.includes(id)) {
+			healthConditions = healthConditions.filter(c => c !== id);
+		} else {
+			healthConditions = [...healthConditions, id];
+		}
+	}
+
 	// --- Navigation ---
+	const totalSteps = 4;
+
 	function nextStep() {
 		if (step === 1 && !aiProviderId) return;
 		direction = 1;
-		step = Math.min(3, step + 1);
+		step = Math.min(totalSteps, step + 1);
 	}
 
 	function prevStep() {
@@ -194,6 +226,7 @@
 				await savePreference('cuisinePreferences', JSON.stringify(cuisinePrefs));
 				if (recipeNotes) await savePreference('recipeNotes', recipeNotes);
 				await savePreference('defaultServings', String(defaultServings));
+				if (healthConditions.length > 0) await savePreference('healthConditions', JSON.stringify(healthConditions));
 			} else {
 				await fetch('/api/einstellungen', {
 					method: 'PUT',
@@ -202,7 +235,8 @@
 						ai_provider: aiProvider,
 						cuisine_preferences: cuisinePrefs,
 						recipe_notes: recipeNotes,
-						default_servings: defaultServings
+						default_servings: defaultServings,
+						health_conditions: healthConditions
 					})
 				});
 			}
@@ -213,7 +247,7 @@
 		}
 	}
 
-	let canContinue = $derived(step === 1 ? !!aiProviderId && !!aiApiKey : true);
+	let canContinue = $derived(step === 1 ? !!aiProviderId && (!!aiApiKey || aiProviderId === 'ollama') : true);
 </script>
 
 <div class="fixed inset-0 bg-white z-[100] flex flex-col" style="padding-top: env(safe-area-inset-top);">
@@ -232,7 +266,7 @@
 
 	<!-- Step indicator -->
 	<div class="flex justify-center gap-2 pb-4">
-		{#each [1, 2, 3] as s}
+		{#each [1, 2, 3, 4] as s}
 			<div class="w-2.5 h-2.5 rounded-full transition-all duration-300 {s === step ? 'bg-orange-500 scale-110' : s < step ? 'bg-orange-300' : 'bg-warm-200'}"></div>
 		{/each}
 	</div>
@@ -371,7 +405,33 @@
 					{/if}
 
 				{:else if step === 2}
-					<!-- Step 2: Preferences -->
+					<!-- Step 2: Health Conditions -->
+					<h1 class="text-2xl font-bold text-warm-900 mb-2">Gesundheit & Verträglichkeiten</h1>
+					<p class="text-warm-500 mb-6">Hast du gesundheitliche Einschränkungen? Cokko berücksichtigt diese bei allen Rezeptvorschlägen.</p>
+
+					<div class="space-y-2 mb-6">
+						{#each healthConditionOptions as option}
+							<button
+								type="button"
+								onclick={() => toggleHealthCondition(option.id)}
+								class="w-full flex items-center gap-2.5 px-4 py-3 rounded-xl border-2 text-left text-sm transition-all min-h-[48px]
+									{healthConditions.includes(option.id) ? 'border-blue-400 bg-blue-50 text-blue-800' : 'border-warm-200 text-warm-600 hover:border-warm-300'}"
+							>
+								<span class="text-base flex-shrink-0">{option.icon}</span>
+								<span class="flex-1 font-medium">{option.label}</span>
+								{#if healthConditions.includes(option.id)}
+									<svg class="w-5 h-5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+									</svg>
+								{/if}
+							</button>
+						{/each}
+					</div>
+
+					<p class="text-xs text-warm-400 text-center">Nichts davon? Einfach „Weiter" drücken.</p>
+
+				{:else if step === 3}
+					<!-- Step 3: Preferences -->
 					<h1 class="text-2xl font-bold text-warm-900 mb-2">Was isst du gerne?</h1>
 					<p class="text-warm-500 mb-6">Bewerte deine Lieblings-Küchen – Cokko schlägt dir passende Rezepte vor.</p>
 
@@ -438,8 +498,8 @@
 						</div>
 					</div>
 
-				{:else if step === 3}
-					<!-- Step 3: Done -->
+				{:else if step === 4}
+					<!-- Step 4: Done -->
 					<div class="text-center py-8">
 						<div class="text-6xl mb-6">🎉</div>
 						<h1 class="text-2xl font-bold text-warm-900 mb-4">Alles bereit!</h1>
@@ -466,7 +526,7 @@
 
 	<!-- Bottom button -->
 	<div class="px-6 pb-6" style="padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);">
-		{#if step < 3}
+		{#if step < totalSteps}
 			<button
 				onclick={nextStep}
 				disabled={!canContinue}
