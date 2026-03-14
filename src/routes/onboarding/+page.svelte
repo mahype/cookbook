@@ -22,8 +22,20 @@
 	let aiModel = $state('');
 	let aiBaseUrl = $state('');
 	let showApiKey = $state(false);
+	let showAdvanced = $state(false);
+	let showModelDropdown = $state(false);
 	let aiTestState: 'idle' | 'loading' | 'success' | 'error' = $state('idle');
 	let aiTestError = $state('');
+
+	// Popular models per provider
+	const providerModels: Record<string, string[]> = {
+		openai: ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-4.1', 'gpt-4.1-nano', 'o3-mini', 'o4-mini'],
+		anthropic: ['claude-sonnet-4-20250514', 'claude-haiku-3-20250414', 'claude-opus-4-20250514'],
+		mistral: ['mistral-small-latest', 'mistral-medium-latest', 'mistral-large-latest'],
+		openrouter: ['auto', 'anthropic/claude-sonnet-4', 'openai/gpt-4o-mini', 'google/gemini-2.5-flash'],
+		ollama: ['llama3.2', 'llama3.1', 'mistral', 'gemma2', 'phi3', 'qwen2'],
+		custom: []
+	};
 
 	function selectProvider(id: string) {
 		const p = providerList.find(p => p.id === id);
@@ -206,19 +218,16 @@
 
 <div class="fixed inset-0 bg-white z-[100] flex flex-col" style="padding-top: env(safe-area-inset-top);">
 	<!-- Header -->
-	<div class="flex items-center justify-between px-6 py-4">
+	<div class="relative flex items-center justify-center px-6 py-4">
 		{#if step > 1}
-			<button onclick={prevStep} class="text-warm-500 text-sm font-medium flex items-center gap-1 min-h-[44px]">
+			<button onclick={prevStep} class="absolute left-4 text-warm-500 text-sm font-medium flex items-center gap-1 min-h-[44px]">
 				<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
 				</svg>
 				Zurück
 			</button>
-		{:else}
-			<div></div>
 		{/if}
 		<img src="/icons/cokko-icon.svg" alt="Cokko" class="w-10 h-10 rounded-xl" />
-		<div class="w-16"></div>
 	</div>
 
 	<!-- Step indicator -->
@@ -237,90 +246,125 @@
 					<h1 class="text-2xl font-bold text-warm-900 mb-2">Deine KI einrichten</h1>
 					<p class="text-warm-500 mb-6">Cokko nutzt KI um dir persönliche Rezepte vorzuschlagen.</p>
 
-					<div class="space-y-3 mb-6">
+					<!-- Provider grid (like settings) -->
+					<div class="grid grid-cols-3 gap-2 mb-5">
 						{#each providerList as p}
 							<button
 								onclick={() => selectProvider(p.id)}
-								class="w-full text-left px-4 py-3 rounded-xl border-2 transition-all min-h-[48px]
-									{aiProviderId === p.id ? 'border-orange-500 bg-orange-50' : 'border-warm-200 hover:border-warm-300'}"
-							>
-								<span class="font-semibold text-warm-900">{p.name}</span>
-								{#if p.id !== 'custom' && p.id !== 'ollama'}
-									<span class="text-xs text-warm-400 ml-2">{p.defaultModel}</span>
-								{/if}
-							</button>
+								class="py-2.5 px-3 rounded-xl text-sm font-medium transition-colors {aiProviderId === p.id ? 'bg-orange-500 text-white' : 'bg-warm-100 text-warm-600 hover:bg-warm-200'}"
+							>{p.name}</button>
 						{/each}
 					</div>
 
 					{#if aiProviderId}
-						<div class="space-y-4" in:fade={{ duration: 200 }}>
-							<div>
-								<label class="block text-sm font-medium text-warm-700 mb-1">API-Key</label>
+						<div class="space-y-3" in:fade={{ duration: 200 }}>
+							<!-- API Key -->
+							{#if aiProviderId !== 'ollama'}
+								<div>
+									<label class="text-xs font-medium text-warm-500 block mb-1">API-Key</label>
+									<div class="relative">
+										<input
+											type={showApiKey ? 'text' : 'password'}
+											bind:value={aiApiKey}
+											placeholder="sk-..."
+											autocomplete="off"
+											class="w-full rounded-xl border border-warm-200 bg-warm-50 px-4 py-2.5 text-sm text-warm-800 pr-10 focus:border-orange-400 focus:ring-2 focus:ring-orange-200 focus:outline-none"
+										/>
+										<button
+											onclick={() => (showApiKey = !showApiKey)}
+											class="absolute right-3 top-1/2 -translate-y-1/2 text-warm-400 hover:text-warm-600"
+										>
+											<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												{#if showApiKey}
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+												{:else}
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+												{/if}
+											</svg>
+										</button>
+									</div>
+								</div>
+							{:else}
+								<p class="text-xs text-green-600 bg-green-50 px-3 py-2 rounded-xl">Kein API-Key nötig – Ollama läuft lokal.</p>
+							{/if}
+
+							<!-- Model with dropdown -->
+							<div class="relative">
+								<label class="text-xs font-medium text-warm-500 block mb-1">Modell</label>
 								<div class="relative">
-									{#if showApiKey}
-										<input type="text" bind:value={aiApiKey} placeholder="sk-..." class="w-full px-4 py-3 rounded-xl border border-warm-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none pr-12" />
-									{:else}
-										<input type="password" bind:value={aiApiKey} placeholder="sk-..." class="w-full px-4 py-3 rounded-xl border border-warm-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none pr-12" />
-									{/if}
-									<button onclick={() => showApiKey = !showApiKey} class="absolute right-3 top-1/2 -translate-y-1/2 text-warm-400 min-w-[44px] min-h-[44px] flex items-center justify-center">
-										<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											{#if showApiKey}
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-											{:else}
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-											{/if}
+									<input
+										type="text"
+										bind:value={aiModel}
+										placeholder="z.B. gpt-4o-mini"
+										onfocus={() => showModelDropdown = true}
+										class="w-full rounded-xl border border-warm-200 bg-warm-50 px-4 py-2.5 text-sm text-warm-800 focus:border-orange-400 focus:ring-2 focus:ring-orange-200 focus:outline-none"
+									/>
+									<button
+										onclick={() => showModelDropdown = !showModelDropdown}
+										class="absolute right-3 top-1/2 -translate-y-1/2 text-warm-400 hover:text-warm-600"
+									>
+										<svg class="w-4 h-4 transition-transform {showModelDropdown ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
 										</svg>
 									</button>
 								</div>
+								{#if showModelDropdown && (providerModels[aiProviderId] ?? []).length > 0}
+									<div class="absolute z-10 w-full mt-1 bg-white rounded-xl border border-warm-200 shadow-lg max-h-48 overflow-y-auto">
+										{#each providerModels[aiProviderId] ?? [] as model}
+											<button
+												onclick={() => { aiModel = model; showModelDropdown = false; }}
+												class="w-full text-left px-4 py-2.5 text-sm hover:bg-orange-50 transition-colors first:rounded-t-xl last:rounded-b-xl
+													{aiModel === model ? 'text-orange-600 font-medium bg-orange-50' : 'text-warm-700'}"
+											>
+												{model}
+											</button>
+										{/each}
+									</div>
+								{/if}
 							</div>
 
-							<div>
-								<label class="block text-sm font-medium text-warm-700 mb-1">Modell</label>
-								<input type="text" bind:value={aiModel} class="w-full px-4 py-3 rounded-xl border border-warm-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none" />
-							</div>
-
-							{#if aiProviderId === 'custom' || aiProviderId === 'ollama'}
+							<!-- Advanced: Base URL -->
+							<button onclick={() => (showAdvanced = !showAdvanced)} class="text-xs text-warm-400 hover:text-warm-600 flex items-center gap-1">
+								<svg class="w-3 h-3 transition-transform {showAdvanced ? 'rotate-90' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+								Erweitert
+							</button>
+							{#if showAdvanced}
 								<div>
-									<label class="block text-sm font-medium text-warm-700 mb-1">API-URL</label>
-									<input type="text" bind:value={aiBaseUrl} class="w-full px-4 py-3 rounded-xl border border-warm-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none" />
+									<label class="text-xs font-medium text-warm-500 block mb-1">Base-URL</label>
+									<input
+										type="text"
+										bind:value={aiBaseUrl}
+										placeholder="https://api.openai.com/v1"
+										class="w-full rounded-xl border border-warm-200 bg-warm-50 px-4 py-2.5 text-sm text-warm-800 focus:border-orange-400 focus:ring-2 focus:ring-orange-200 focus:outline-none"
+									/>
 								</div>
 							{/if}
 
-							{#if aiApiKey}
-								<button
-									onclick={testAI}
-									disabled={aiTestState === 'loading'}
-									class="w-full py-3 rounded-xl font-semibold text-sm transition-all min-h-[48px]
-										{aiTestState === 'success' ? 'border-2 border-green-500 text-green-600 bg-white' :
-										 aiTestState === 'error' ? 'border-2 border-red-500 text-red-600 bg-white' :
-										 'border-2 border-warm-200 text-warm-600 hover:border-orange-300'}"
-								>
-									{#if aiTestState === 'loading'}
-										<svg class="w-5 h-5 animate-spin mx-auto" fill="none" viewBox="0 0 24 24">
-											<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-											<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-										</svg>
-									{:else if aiTestState === 'success'}
-										<span class="flex items-center justify-center gap-2">
-											<svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
-											</svg>
-											Verbunden!
-										</span>
-									{:else if aiTestState === 'error'}
-										<span class="flex items-center justify-center gap-2">
-											<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
-											</svg>
-											Fehlgeschlagen
-										</span>
-									{:else}
-										Verbindung testen
-									{/if}
-								</button>
+							<!-- Test button -->
+							{#if aiApiKey || aiProviderId === 'ollama'}
+								<div class="flex gap-2">
+									<button
+										onclick={testAI}
+										disabled={aiTestState === 'loading'}
+										class="flex-1 py-2.5 rounded-xl text-sm font-semibold border-2 flex items-center justify-center transition-colors disabled:opacity-50
+											{aiTestState === 'success' ? 'border-green-500 bg-white text-green-600' :
+											 aiTestState === 'error' ? 'border-red-500 bg-white text-red-600' :
+											 'border-orange-500 text-orange-600 hover:bg-orange-50'}"
+									>
+										{#if aiTestState === 'loading'}
+											<svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+										{:else if aiTestState === 'success'}
+											<svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+										{:else if aiTestState === 'error'}
+											<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+										{:else}
+											Verbindung testen
+										{/if}
+									</button>
+								</div>
 								{#if aiTestState === 'error' && aiTestError}
-									<p class="text-red-500 text-xs mt-1">{aiTestError}</p>
+									<div class="text-sm px-3 py-2 rounded-xl bg-red-50 text-red-700">✗ {aiTestError}</div>
 								{/if}
 							{/if}
 						</div>

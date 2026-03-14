@@ -230,7 +230,17 @@
 	let aiBaseUrl = $state(data.aiProvider?.baseUrl ?? '');
 	let showApiKey = $state(false);
 	let showAdvanced = $state(false);
+	let showModelDropdown = $state(false);
 	let aiTestState: ButtonState = $state('idle');
+
+	const providerModels: Record<string, string[]> = {
+		openai: ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-4.1', 'gpt-4.1-nano', 'o3-mini', 'o4-mini'],
+		anthropic: ['claude-sonnet-4-20250514', 'claude-haiku-3-20250414', 'claude-opus-4-20250514'],
+		mistral: ['mistral-small-latest', 'mistral-medium-latest', 'mistral-large-latest'],
+		openrouter: ['auto', 'anthropic/claude-sonnet-4', 'openai/gpt-4o-mini', 'google/gemini-2.5-flash'],
+		ollama: ['llama3.2', 'llama3.1', 'mistral', 'gemma2', 'phi3', 'qwen2'],
+		custom: []
+	};
 	let aiTestResult = $state<{ success: boolean; error?: string; model?: string } | null>(null);
 	let aiSaveState: ButtonState = $state('idle');
 
@@ -452,15 +462,39 @@
 					<p class="text-xs text-herb-600 bg-herb-50 px-3 py-2 rounded-xl mb-3">Kein API-Key nötig – Ollama läuft lokal.</p>
 				{/if}
 
-				<!-- Model -->
-				<div class="mb-3">
+				<!-- Model with dropdown -->
+				<div class="mb-3 relative">
 					<label class="text-xs font-medium text-warm-500 block mb-1">Modell</label>
-					<input
-						type="text"
-						bind:value={aiModel}
-						placeholder="z.B. gpt-4o-mini"
-						class="w-full rounded-xl border border-warm-200 bg-warm-50 px-4 py-2.5 text-sm text-warm-800 focus:border-spice-400 focus:ring-2 focus:ring-spice-200 focus:outline-none"
-					/>
+					<div class="relative">
+						<input
+							type="text"
+							bind:value={aiModel}
+							placeholder="z.B. gpt-4o-mini"
+							onfocus={() => showModelDropdown = true}
+							class="w-full rounded-xl border border-warm-200 bg-warm-50 px-4 py-2.5 text-sm text-warm-800 focus:border-spice-400 focus:ring-2 focus:ring-spice-200 focus:outline-none"
+						/>
+						<button
+							onclick={() => showModelDropdown = !showModelDropdown}
+							class="absolute right-3 top-1/2 -translate-y-1/2 text-warm-400 hover:text-warm-600"
+						>
+							<svg class="w-4 h-4 transition-transform {showModelDropdown ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+							</svg>
+						</button>
+					</div>
+					{#if showModelDropdown && (providerModels[aiProviderId] ?? []).length > 0}
+						<div class="absolute z-10 w-full mt-1 bg-white rounded-xl border border-warm-200 shadow-lg max-h-48 overflow-y-auto">
+							{#each providerModels[aiProviderId] ?? [] as model}
+								<button
+									onclick={() => { aiModel = model; showModelDropdown = false; }}
+									class="w-full text-left px-4 py-2.5 text-sm hover:bg-spice-50 transition-colors first:rounded-t-xl last:rounded-b-xl
+										{aiModel === model ? 'text-spice-600 font-medium bg-spice-50' : 'text-warm-700'}"
+								>
+									{model}
+								</button>
+							{/each}
+						</div>
+					{/if}
 				</div>
 
 				<!-- Advanced: Base URL -->
