@@ -19,7 +19,8 @@ export const GET: RequestHandler = async () => {
 	const recipe_notes = getPreference('recipe_notes') ?? '';
 	const default_servings = parseInt(getPreference('default_servings') ?? '2', 10);
 	const ai_provider = JSON.parse(getPreference('ai_provider') ?? 'null');
-	return json({ cuisine_preferences, recipe_notes, default_servings, ai_provider });
+	const health_conditions = JSON.parse(getPreference('health_conditions') ?? '[]');
+	return json({ cuisine_preferences, recipe_notes, default_servings, ai_provider, healthConditions: health_conditions });
 };
 
 export const PUT: RequestHandler = async ({ request }) => {
@@ -54,6 +55,14 @@ export const PUT: RequestHandler = async ({ request }) => {
 		setPreference('recipe_notes', body.recipe_notes);
 	}
 
+	if ('health_conditions' in body) {
+		if (Array.isArray(body.health_conditions)) {
+			setPreference('health_conditions', JSON.stringify(body.health_conditions));
+		} else {
+			return json({ error: 'health_conditions muss ein Array sein' }, { status: 400 });
+		}
+	}
+
 	if ('ai_provider' in body) {
 		if (body.ai_provider === null) {
 			setPreference('ai_provider', 'null');
@@ -68,5 +77,6 @@ export const PUT: RequestHandler = async ({ request }) => {
 	const recipe_notes = getPreference('recipe_notes') ?? '';
 	const default_servings = parseInt(getPreference('default_servings') ?? '2', 10);
 	const ai_provider = JSON.parse(getPreference('ai_provider') ?? 'null');
-	return json({ cuisine_preferences, recipe_notes, default_servings, ai_provider });
+	const health_conditions = JSON.parse(getPreference('health_conditions') ?? '[]');
+	return json({ cuisine_preferences, recipe_notes, default_servings, ai_provider, healthConditions: health_conditions });
 };

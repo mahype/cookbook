@@ -5,18 +5,79 @@
 
 	let { data }: { data: PageData } = $props();
 
+	// Health conditions
+	const healthConditionOptions = [
+		{ id: 'diabetes_typ1', label: 'Diabetes Typ 1', icon: '💉' },
+		{ id: 'diabetes_typ2', label: 'Diabetes Typ 2', icon: '🩸' },
+		{ id: 'laktoseintoleranz', label: 'Laktoseintoleranz', icon: '🥛' },
+		{ id: 'glutenunvertraeglichkeit', label: 'Glutenunverträglichkeit / Zöliakie', icon: '🌾' },
+		{ id: 'fruktoseintoleranz', label: 'Fruktoseintoleranz', icon: '🍎' },
+		{ id: 'histaminintoleranz', label: 'Histaminintoleranz', icon: '⚠️' },
+		{ id: 'nussallergie', label: 'Nussallergie', icon: '🥜' },
+		{ id: 'sojaallergie', label: 'Sojaallergie', icon: '🫘' },
+		{ id: 'fischallergie', label: 'Fisch-/Meeresfrüchte-Allergie', icon: '🐟' },
+		{ id: 'eiallergie', label: 'Eiallergie', icon: '🥚' },
+		{ id: 'bluthochdruck', label: 'Bluthochdruck (salzarm)', icon: '❤️' },
+		{ id: 'gicht', label: 'Gicht (purinarm)', icon: '🦶' },
+		{ id: 'nierenerkrankung', label: 'Nierenerkrankung', icon: '🫘' },
+		{ id: 'reizdarmsyndrom', label: 'Reizdarmsyndrom (FODMAP)', icon: '🫄' },
+		{ id: 'cholesterin', label: 'Hoher Cholesterinspiegel', icon: '🫀' },
+		{ id: 'schwangerschaft', label: 'Schwangerschaft', icon: '🤰' },
+	];
+
+	let healthConditions = $state<string[]>([]);
+	let healthSaveState: ButtonState = $state('idle');
+
+	function toggleHealthCondition(id: string) {
+		if (healthConditions.includes(id)) {
+			healthConditions = healthConditions.filter(c => c !== id);
+		} else {
+			healthConditions = [...healthConditions, id];
+		}
+		saveHealth();
+	}
+
+	async function saveHealth() {
+		healthSaveState = 'loading';
+		try {
+			if (isCapacitor()) {
+				await savePreference('healthConditions', JSON.stringify(healthConditions));
+			} else {
+				await fetch('/api/einstellungen', {
+					method: 'PUT',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ health_conditions: healthConditions })
+				});
+			}
+			healthSaveState = 'success';
+		} catch {
+			healthSaveState = 'error';
+		}
+		resetAfterDelay(s => healthSaveState = s);
+	}
+
 	onMount(async () => {
 		if (isCapacitor()) {
 			const prefs = await loadPreferences();
 			ratings = { ...prefs.cuisinePreferences };
 			recipeNotes = prefs.recipeNotes;
 			defaultServings = prefs.defaultServings;
+			healthConditions = prefs.healthConditions ?? [];
 			if (prefs.aiProvider) {
 				aiProviderId = prefs.aiProvider.id ?? '';
 				aiApiKey = prefs.aiProvider.apiKey ?? '';
 				aiModel = prefs.aiProvider.model ?? '';
 				aiBaseUrl = prefs.aiProvider.baseUrl ?? '';
 			}
+		} else {
+			// Load health conditions from server
+			try {
+				const res = await fetch('/api/einstellungen');
+				if (res.ok) {
+					const d = await res.json();
+					healthConditions = d.healthConditions ?? [];
+				}
+			} catch {}
 		}
 	});
 
@@ -313,6 +374,32 @@
 					disabled={defaultServings >= 12}
 					class="w-11 h-11 rounded-full bg-spice-100 text-spice-700 flex items-center justify-center text-2xl font-bold hover:bg-spice-200 active:bg-spice-300 transition-colors disabled:opacity-30"
 				>+</button>
+			</div>
+		</div>
+	</div>
+
+	<!-- Health Conditions -->
+	<div class="bg-white rounded-2xl shadow-sm border border-warm-100 overflow-hidden mb-6">
+		<div class="px-5 py-4">
+			<h2 class="text-sm font-semibold text-warm-500 uppercase tracking-wide mb-1">Gesundheit & Verträglichkeiten</h2>
+			<p class="text-xs text-warm-400 mb-4">Cokko berücksichtigt diese bei der Rezeptauswahl.</p>
+			<div class="grid grid-cols-1 gap-2">
+				{#each healthConditionOptions as option}
+					<button
+						type="button"
+						onclick={() => toggleHealthCondition(option.id)}
+						class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left text-sm transition-all min-h-[44px]
+							{healthConditions.includes(option.id) ? 'border-blue-400 bg-blue-50 text-blue-800' : 'border-warm-200 text-warm-600 hover:border-warm-300'}"
+					>
+						<span class="text-base flex-shrink-0">{option.icon}</span>
+						<span class="flex-1">{option.label}</span>
+						{#if healthConditions.includes(option.id)}
+							<svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+							</svg>
+						{/if}
+					</button>
+				{/each}
 			</div>
 		</div>
 	</div>

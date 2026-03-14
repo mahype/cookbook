@@ -226,19 +226,22 @@ export async function loadPreferences(): Promise<{
 	recipeNotes: string;
 	defaultServings: number;
 	aiProvider: any;
+	healthConditions: string[];
 }> {
-	const [cuisineRaw, recipeNotes, defaultServingsRaw, aiProviderRaw] = await Promise.all([
+	const [cuisineRaw, recipeNotes, defaultServingsRaw, aiProviderRaw, healthRaw] = await Promise.all([
 		loadPreference('cuisinePreferences'),
 		loadPreference('recipeNotes'),
 		loadPreference('defaultServings'),
-		loadPreference('aiProvider')
+		loadPreference('aiProvider'),
+		loadPreference('healthConditions')
 	]);
 
 	return {
 		cuisinePreferences: cuisineRaw ? JSON.parse(cuisineRaw) : {},
 		recipeNotes: recipeNotes ?? '',
 		defaultServings: defaultServingsRaw ? parseInt(defaultServingsRaw, 10) : 2,
-		aiProvider: aiProviderRaw ? JSON.parse(aiProviderRaw) : null
+		aiProvider: aiProviderRaw ? JSON.parse(aiProviderRaw) : null,
+		healthConditions: healthRaw ? JSON.parse(healthRaw) : []
 	};
 }
 
