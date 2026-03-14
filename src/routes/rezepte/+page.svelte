@@ -231,9 +231,8 @@
 	{/if}
 </div>
 
-<!-- FAB overlay backdrop (only on gespeichert tab) -->
-{#if activeTab === 'gespeichert'}
-	{#if fabOpen}
+<!-- FAB overlay backdrop -->
+{#if fabOpen}
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div
 			class="fixed inset-0 bg-black/20 z-40 transition-opacity duration-300"
@@ -296,7 +295,6 @@
 			</div>
 		{/if}
 	</div>
-{/if}
 
 <style>
 	@keyframes fade-in-down {
