@@ -37,7 +37,7 @@
 </svelte:head>
 
 <div class="min-h-screen flex flex-col bg-warm-50">
-	<main class="flex-1 pb-20">
+	<main class="flex-1 pb-20 pt-[env(safe-area-inset-top)]">
 		{@render children()}
 	</main>
 
