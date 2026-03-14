@@ -494,20 +494,22 @@
 				{:else if step === 4}
 					<!-- Step 4: Done -->
 					<div class="text-center py-8">
-						<div class="text-6xl mb-6">🎉</div>
+						<svg class="w-16 h-16 mx-auto mb-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+						</svg>
 						<h1 class="text-2xl font-bold text-warm-900 mb-4">Alles bereit!</h1>
 
 						<div class="text-left space-y-4 text-sm text-warm-600 bg-warm-50 rounded-2xl p-5">
 							<div class="flex gap-3">
-								<span class="text-orange-500 text-lg flex-shrink-0">➕</span>
-								<p>Drücke auf den <strong class="text-warm-900">➕ Button</strong> und wähle <strong class="text-warm-900">„Rezepte generieren"</strong>. Cokko erstellt dir 5 neue Rezeptvorschläge.</p>
+								<svg class="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+								<p>Drücke auf den <strong class="text-warm-900">+ Button</strong> und wähle <strong class="text-warm-900">„Rezepte generieren"</strong>. Cokko erstellt dir 5 neue Rezeptvorschläge.</p>
 							</div>
 							<div class="flex gap-3">
-								<span class="text-orange-500 text-lg flex-shrink-0">✅</span>
-								<p>Gefällt dir ein Rezept? Tippe auf den <strong class="text-warm-900">orangenen ➕</strong> auf der Karte – es wird dauerhaft auf deinem Handy gespeichert.</p>
+								<svg class="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+								<p>Gefällt dir ein Rezept? Tippe auf den <strong class="text-warm-900">orangenen +</strong> auf der Karte – es wird dauerhaft auf deinem Handy gespeichert.</p>
 							</div>
 							<div class="flex gap-3">
-								<span class="text-red-400 text-lg flex-shrink-0">🗑️</span>
+								<svg class="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
 								<p>Rezepte die du nicht magst kannst du mit dem <strong class="text-warm-900">Papierkorb-Button</strong> verwerfen.</p>
 							</div>
 						</div>
@@ -557,7 +559,7 @@
 						<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
 					</svg>
 				{:else}
-					Los geht's! 🍳
+					Los geht's!
 				{/if}
 			</button>
 		{/if}
