@@ -88,7 +88,7 @@ Antworte NUR mit dem JSON-Array, kein anderer Text.`;
 			},
 			body: JSON.stringify({
 				model: provider.model,
-				max_tokens: 4096,
+				max_tokens: 8192,
 				messages: [{ role: 'user', content: prompt }]
 			})
 		});
@@ -104,7 +104,7 @@ Antworte NUR mit dem JSON-Array, kein anderer Text.`;
 			headers,
 			body: JSON.stringify({
 				model: provider.model,
-				max_tokens: 4096,
+				max_tokens: 8192,
 				messages: [{ role: 'user', content: prompt }]
 			})
 		});
@@ -116,5 +116,27 @@ Antworte NUR mit dem JSON-Array, kein anderer Text.`;
 	// Parse JSON from response (handle markdown code blocks)
 	const jsonMatch = content.match(/\[[\s\S]*\]/);
 	if (!jsonMatch) throw new Error('KI hat kein gültiges JSON geliefert');
-	return JSON.parse(jsonMatch[0]);
+
+	try {
+		return JSON.parse(jsonMatch[0]);
+	} catch {
+		// Try to repair truncated JSON: close open strings/objects/arrays
+		let fixed = jsonMatch[0];
+		// Count open brackets
+		const openBrackets = (fixed.match(/\[/g) || []).length - (fixed.match(/\]/g) || []).length;
+		const openBraces = (fixed.match(/\{/g) || []).length - (fixed.match(/\}/g) || []).length;
+		// Close unterminated string
+		const quoteCount = (fixed.match(/"/g) || []).length;
+		if (quoteCount % 2 !== 0) fixed += '"';
+		// Close open braces and brackets
+		for (let i = 0; i < openBraces; i++) fixed += '}';
+		for (let i = 0; i < openBrackets; i++) fixed += ']';
+		try {
+			const parsed = JSON.parse(fixed);
+			// Return only complete recipes (ones that have at least name + ingredients)
+			return Array.isArray(parsed) ? parsed.filter((r: any) => r.name && r.ingredients) : parsed;
+		} catch {
+			throw new Error('KI-Antwort war unvollständig. Bitte nochmal versuchen.');
+		}
+	}
 }
