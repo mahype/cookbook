@@ -269,10 +269,12 @@
 
 			// Find images in background (Pexels first, then DALL-E fallback)
 			let pexelsKey = '';
+			let unsplashKey = '';
 			let openaiKey = '';
 			if (isCapacitor()) {
 				const { loadPreference } = await import('$lib/stores/data');
 				pexelsKey = (await loadPreference('pexelsApiKey')) ?? '';
+				unsplashKey = (await loadPreference('unsplashApiKey')) ?? '';
 				openaiKey = (await loadPreference('openaiImageKey')) ?? '';
 			}
 			// If main provider is OpenAI, use that key for DALL-E
@@ -280,9 +282,9 @@
 				openaiKey = aiProviderConfig.apiKey;
 			}
 
-			if (pexelsKey || openaiKey) {
+			if (pexelsKey || unsplashKey || openaiKey) {
 				for (const recipe of localData.suggestionRecipes ?? []) {
-					findOrGenerateImage(recipe.name, pexelsKey, openaiKey).then(async (url) => {
+					findOrGenerateImage(recipe.name, pexelsKey, openaiKey, unsplashKey).then(async (url) => {
 						if (url) {
 							if (isCapacitor()) {
 								const db = await import('$lib/client/db');
