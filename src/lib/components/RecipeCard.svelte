@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Recipe } from '$lib/server/db';
+	import { onMount } from 'svelte';
 	import RecipeDetails from './RecipeDetails.svelte';
 
 	type Props = {
@@ -28,24 +29,51 @@
 	let approved = $state(recipe.status === 'approved');
 	let approving = $state(false);
 
-	let lastToggle = 0;
-	function toggleDetails(e: Event) {
-		e.preventDefault();
-		// Debounce: prevent double-fire from touchend + click
-		const now = Date.now();
-		if (now - lastToggle < 300) return;
-		lastToggle = now;
-		expanded = !expanded;
-	}
+	// Use vanilla JS event listeners for iOS WKWebView compatibility
+	let detailsBtn: HTMLElement;
+	let dismissBtn: HTMLElement;
 
-	let lastDismiss = 0;
-	function handleDismiss(e: Event) {
-		e.preventDefault();
-		const now = Date.now();
-		if (now - lastDismiss < 300) return;
-		lastDismiss = now;
-		if (onDismiss) onDismiss(recipe);
-	}
+	onMount(() => {
+		if (detailsBtn) {
+			const handler = (e: Event) => {
+				e.preventDefault();
+				e.stopPropagation();
+				expanded = !expanded;
+			};
+			detailsBtn.addEventListener('touchend', handler, { passive: false });
+			detailsBtn.addEventListener('click', handler);
+
+			// Debounce: prevent double fire
+			let lastFire = 0;
+			const debouncedHandler = (e: Event) => {
+				const now = Date.now();
+				if (now - lastFire < 400) { e.preventDefault(); return; }
+				lastFire = now;
+				e.preventDefault();
+				e.stopPropagation();
+				expanded = !expanded;
+			};
+			// Replace with debounced version
+			detailsBtn.removeEventListener('touchend', handler);
+			detailsBtn.removeEventListener('click', handler);
+			detailsBtn.addEventListener('touchend', debouncedHandler, { passive: false });
+			detailsBtn.addEventListener('click', debouncedHandler);
+		}
+
+		if (dismissBtn && onDismiss) {
+			let lastFire = 0;
+			const handler = (e: Event) => {
+				const now = Date.now();
+				if (now - lastFire < 400) { e.preventDefault(); return; }
+				lastFire = now;
+				e.preventDefault();
+				e.stopPropagation();
+				if (onDismiss) onDismiss(recipe);
+			};
+			dismissBtn.addEventListener('touchend', handler, { passive: false });
+			dismissBtn.addEventListener('click', handler);
+		}
+	});
 
 	async function approveRecipe(e: Event) {
 		e.preventDefault();
@@ -113,11 +141,11 @@
 </script>
 
 <div
-	class="rounded-2xl shadow-sm overflow-hidden border transition-all duration-200 {approved && approvable
+	class="rounded-2xl shadow-sm overflow-hidden border transition-colors duration-200 {approved && approvable
 		? 'border-green-200 opacity-60'
 		: recipe.pantry_based
-			? 'bg-white border-orange-200 hover:shadow-md'
-			: 'bg-white border-warm-100 hover:shadow-md'}"
+			? 'bg-white border-orange-200'
+			: 'bg-white border-warm-100'}"
 >
 	<!-- Image -->
 	<div class="relative overflow-hidden">
@@ -215,15 +243,13 @@
 	</div>
 
 	<!-- Action bar: Details + Delete -->
-	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div class="border-t border-warm-100 flex" style="-webkit-touch-callout: none; -webkit-tap-highlight-color: rgba(0,0,0,0.1);">
+	<div class="border-t border-warm-100 flex">
 		<div
+			bind:this={detailsBtn}
 			role="button"
 			tabindex="0"
-			onclick={toggleDetails}
-			ontouchend={toggleDetails}
 			class="flex-1 flex items-center justify-center gap-1.5 py-3.5 min-h-[44px] text-sm font-semibold bg-orange-500 text-white active:bg-orange-700 cursor-pointer select-none"
-			style="touch-action: manipulation; -webkit-user-select: none;"
+			style="touch-action: manipulation; -webkit-user-select: none; -webkit-tap-highlight-color: rgba(0,0,0,0.1);"
 		>
 			<span>{expanded ? 'Zuklappen' : 'Details anzeigen'}</span>
 			<svg
@@ -237,12 +263,11 @@
 		</div>
 		{#if (dismissable || !approvable) && onDismiss}
 			<div
+				bind:this={dismissBtn}
 				role="button"
 				tabindex="0"
-				onclick={handleDismiss}
-				ontouchend={handleDismiss}
 				class="w-12 flex items-center justify-center bg-orange-500 active:bg-red-600 text-white cursor-pointer select-none border-l border-orange-400"
-				style="touch-action: manipulation; -webkit-user-select: none;"
+				style="touch-action: manipulation; -webkit-user-select: none; -webkit-tap-highlight-color: rgba(0,0,0,0.1);"
 				aria-label="Rezept löschen"
 			>
 				<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">

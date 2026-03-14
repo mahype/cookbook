@@ -365,7 +365,7 @@
 		{:else}
 			<div class="space-y-4 mb-6">
 				{#each localData.suggestionRecipes ?? [] as recipe (recipe.id)}
-					<div class="relative transition-all duration-500" id="suggestion-{recipe.id}">
+					<div class="relative" id="suggestion-{recipe.id}">
 						<RecipeCard
 							{recipe}
 							approvable={true}
