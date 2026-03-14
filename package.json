@@ -11,8 +11,8 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"seed": "npx tsx scripts/seed.ts",
-		"build:cap": "CAPACITOR=true npm run build && npx cap sync",
-		"build:ios": "CAPACITOR=true npm run build && npx cap sync ios && npx cap open ios",
+		"build:cap": "bash scripts/build-capacitor.sh",
+		"build:ios": "bash scripts/build-capacitor.sh && npx cap open ios",
 		"build:android": "CAPACITOR=true npm run build && npx cap sync android && npx cap open android"
 	},
 	"devDependencies": {

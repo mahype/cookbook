@@ -79,10 +79,10 @@
 		return () => clearInterval(interval);
 	});
 
-	// Refresh count on navigation
+	// Refresh count on navigation (only after app is ready)
 	$effect(() => {
 		void $page.url.pathname;
-		fetchShoppingCount();
+		if (appReady) fetchShoppingCount();
 	});
 </script>
 
