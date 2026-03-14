@@ -132,15 +132,6 @@
 
 	const hasFilters = $derived(cuisine || store || maxTime);
 
-	function formatDate(dateStr: string) {
-		return new Date(dateStr + 'T00:00:00').toLocaleDateString('de-DE', {
-			weekday: 'long',
-			day: 'numeric',
-			month: 'long',
-			year: 'numeric'
-		});
-	}
-
 	let deleteTarget: any = $state(null);
 	let deleting = $state(false);
 
@@ -317,7 +308,6 @@
 
 	{#if activeTab === 'vorschlaege'}
 		<!-- Vorschläge tab -->
-		<p class="text-warm-500 text-sm mb-4">{formatDate(localData.date)}</p>
 
 		{#if generating && (localData.suggestionRecipes ?? []).length > 0}
 			<div class="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-xl flex items-center gap-3">
