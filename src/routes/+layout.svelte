@@ -37,14 +37,22 @@
 	async function checkOnboarding(): Promise<boolean> {
 		try {
 			if (isCapacitor()) {
-				const prefs = await loadPreferences();
-				// Show wizard if no AI provider configured
-				return !prefs.aiProvider || !prefs.aiProvider.id;
+				const { loadPreference } = await import('$lib/stores/data');
+				const raw = await loadPreference('aiProvider');
+				if (!raw) return true;
+				try {
+					const parsed = JSON.parse(raw);
+					return !parsed || !parsed.id || !parsed.apiKey;
+				} catch {
+					return true;
+				}
 			} else {
 				const res = await fetch('/api/einstellungen');
 				if (res.ok) {
 					const data = await res.json();
-					return !data.ai_provider && !data.aiProvider;
+					const ai = data.ai_provider ?? data.aiProvider;
+					if (!ai || (typeof ai === 'object' && !ai.id)) return true;
+					return false;
 				}
 				return false;
 			}

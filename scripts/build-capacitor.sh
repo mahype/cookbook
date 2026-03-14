@@ -52,3 +52,10 @@ echo "✅ Capacitor build complete!"
 # Sync with platforms
 npx cap sync
 echo "✅ Synced with native platforms!"
+echo ""
+echo "📱 To deploy to iOS Simulator WITHOUT losing data:"
+echo "   xcodebuild -project ios/App/App.xcodeproj -scheme App -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build"
+echo "   xcrun simctl install 'iPhone 17 Pro' ~/Library/Developer/Xcode/DerivedData/App-*/Build/Products/Debug-iphonesimulator/App.app"
+echo "   xcrun simctl launch 'iPhone 17 Pro' app.cokko"
+echo ""
+echo "⚠️  Do NOT use 'simctl uninstall' — it deletes all app data (IndexedDB)!"
