@@ -2,11 +2,48 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { fly, fade } from 'svelte/transition';
-	import { isCapacitor, savePreference } from '$lib/stores/data';
+	import { isCapacitor, savePreference, loadPreferences } from '$lib/stores/data';
 	import { healthConditionOptions } from '$lib/healthConditions';
 
 	let step = $state(1);
 	let direction = $state(1); // 1 = forward, -1 = back
+	let loaded = $state(false);
+
+	// Load existing data on mount
+	onMount(async () => {
+		try {
+			let prefs: any;
+			if (isCapacitor()) {
+				prefs = await loadPreferences();
+			} else {
+				const res = await fetch('/api/einstellungen');
+				if (res.ok) prefs = await res.json();
+			}
+			if (prefs) {
+				// AI Provider
+				const ai = prefs.aiProvider ?? prefs.ai_provider;
+				if (ai && typeof ai === 'object') {
+					aiProviderId = ai.id ?? '';
+					aiApiKey = ai.apiKey ?? '';
+					aiModel = ai.model ?? '';
+					aiBaseUrl = ai.baseUrl ?? '';
+				}
+				// Health conditions
+				healthConditions = prefs.healthConditions ?? [];
+				// Cuisine preferences
+				const cp = prefs.cuisinePreferences ?? prefs.cuisine_preferences;
+				if (cp && typeof cp === 'object') {
+					ratings = { ...cp };
+				}
+				// Notes & servings
+				recipeNotes = prefs.recipeNotes ?? prefs.recipe_notes ?? '';
+				defaultServings = prefs.defaultServings ?? prefs.default_servings ?? 2;
+			}
+		} catch {
+			// Start fresh
+		}
+		loaded = true;
+	});
 
 	// --- Step 1: AI Provider ---
 	const providerList = [
@@ -223,18 +260,10 @@
 				});
 			}
 
-			// Mark onboarding as completed
+			// Force persist to IndexedDB before navigating
 			if (isCapacitor()) {
-				await savePreference('onboardingCompleted', '1');
-				// Force persist to IndexedDB before navigating
 				const { forceSave } = await import('$lib/client/db');
 				await forceSave();
-			} else {
-				await fetch('/api/einstellungen', {
-					method: 'PUT',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ onboarding_completed: true })
-				});
 			}
 
 			goto('/rezepte');
@@ -534,20 +563,7 @@
 				Weiter
 			</button>
 			<button
-				onclick={async () => {
-					if (isCapacitor()) {
-						await savePreference('onboardingCompleted', '1');
-						const { forceSave } = await import('$lib/client/db');
-						await forceSave();
-					} else {
-						await fetch('/api/einstellungen', {
-							method: 'PUT',
-							headers: { 'Content-Type': 'application/json' },
-							body: JSON.stringify({ onboarding_completed: true })
-						});
-					}
-					goto('/rezepte');
-				}}
+				onclick={() => goto('/rezepte')}
 				class="w-full py-3 text-sm text-warm-400 hover:text-warm-600 transition-colors min-h-[44px]"
 			>
 				Überspringen
