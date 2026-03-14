@@ -3,23 +3,51 @@
 
 	let { data }: { data: PageData } = $props();
 
-	const allCuisines = [
-		'Deutsch',
-		'Asiatisch',
-		'Thailändisch',
-		'Japanisch',
-		'Koreanisch',
-		'Indisch',
-		'Arabisch/Orientalisch',
-		'Italienisch',
-		'Mexikanisch',
-		'Griechisch',
-		'Amerikanisch',
-		'Französisch'
+	const cuisineCategories = [
+		{
+			name: 'Asiatisch',
+			cuisines: ['Chinesisch', 'Japanisch', 'Koreanisch', 'Thailändisch', 'Vietnamesisch', 'Indisch', 'Indonesisch', 'Malaysisch', 'Philippinisch', 'Sri-Lankisch']
+		},
+		{
+			name: 'Europäisch',
+			cuisines: ['Deutsch', 'Italienisch', 'Französisch', 'Griechisch', 'Spanisch', 'Portugiesisch', 'Britisch', 'Skandinavisch', 'Osteuropäisch', 'Balkan']
+		},
+		{
+			name: 'Orient & Afrika',
+			cuisines: ['Arabisch/Orientalisch', 'Türkisch', 'Persisch', 'Libanesisch', 'Marokkanisch', 'Äthiopisch', 'Westafrikanisch']
+		},
+		{
+			name: 'Amerika',
+			cuisines: ['Amerikanisch', 'Mexikanisch', 'Brasilianisch', 'Peruanisch', 'Karibisch', 'Cajun/Kreolisch']
+		},
+		{
+			name: 'Sonstige',
+			cuisines: ['Australisch', 'Fusion', 'Vegetarisch/Vegan', 'Street Food']
+		}
 	];
 
-
 	let selected = $state<Set<string>>(new Set(data.cuisinePreferences));
+
+	// Track which categories are expanded — default: expanded if has selections
+	let expanded = $state<Set<string>>(new Set(
+		cuisineCategories
+			.filter(cat => cat.cuisines.some(c => data.cuisinePreferences.includes(c)))
+			.map(cat => cat.name)
+	));
+
+	function toggleCategory(name: string) {
+		const next = new Set(expanded);
+		if (next.has(name)) {
+			next.delete(name);
+		} else {
+			next.add(name);
+		}
+		expanded = next;
+	}
+
+	function selectedCount(cuisines: string[]): number {
+		return cuisines.filter(c => selected.has(c)).length;
+	}
 	let recipeNotes = $state(data.recipeNotes);
 	let saving = $state(false);
 	let savingNotes = $state(false);
@@ -91,33 +119,55 @@
 		<h2 class="px-5 pt-4 pb-2 text-sm font-semibold text-warm-500 uppercase tracking-wide">
 			Küchen-Präferenzen
 		</h2>
-		<ul>
-			{#each allCuisines as cuisine}
-				{@const isSelected = selected.has(cuisine)}
-				<li>
-					<button
-						onclick={() => toggle(cuisine)}
-						class="w-full flex items-center justify-between px-5 py-4 min-h-[52px] hover:bg-warm-50 transition-colors active:bg-warm-100"
+		{#each cuisineCategories as category}
+			{@const isExpanded = expanded.has(category.name)}
+			{@const count = selectedCount(category.cuisines)}
+			<div class="border-t border-warm-100">
+				<button
+					onclick={() => toggleCategory(category.name)}
+					class="w-full flex items-center justify-between px-5 py-3.5 hover:bg-warm-50 transition-colors active:bg-warm-100"
+				>
+					<div class="flex items-center gap-2">
+						<span class="text-base font-semibold text-warm-800">{category.name}</span>
+						{#if count > 0}
+							<span class="text-xs font-medium text-spice-600 bg-spice-50 rounded-full px-2 py-0.5">{count}</span>
+						{/if}
+					</div>
+					<svg
+						class="w-5 h-5 text-warm-400 transition-transform duration-200 {isExpanded ? 'rotate-90' : ''}"
+						fill="none" stroke="currentColor" viewBox="0 0 24 24"
 					>
-						<div class="flex items-center gap-3">
-							<span class="w-8 flex items-center justify-center text-warm-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" /></svg></span>
-							<span class="text-base font-medium text-warm-800">{cuisine}</span>
-						</div>
-						<div
-							class="w-12 h-7 rounded-full transition-colors duration-200 flex items-center {isSelected
-								? 'bg-spice-500'
-								: 'bg-warm-200'}"
-						>
-							<div
-								class="w-5.5 h-5.5 bg-white rounded-full shadow-sm transition-transform duration-200 mx-0.5 {isSelected
-									? 'translate-x-5'
-									: 'translate-x-0'}"
-							></div>
-						</div>
-					</button>
-				</li>
-			{/each}
-		</ul>
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+					</svg>
+				</button>
+				{#if isExpanded}
+					<ul>
+						{#each category.cuisines as cuisine}
+							{@const isSelected = selected.has(cuisine)}
+							<li>
+								<button
+									onclick={() => toggle(cuisine)}
+									class="w-full flex items-center justify-between pl-10 pr-5 py-3.5 min-h-[48px] hover:bg-warm-50 transition-colors active:bg-warm-100"
+								>
+									<span class="text-sm font-medium text-warm-700">{cuisine}</span>
+									<div
+										class="w-12 h-7 rounded-full transition-colors duration-200 flex items-center {isSelected
+											? 'bg-spice-500'
+											: 'bg-warm-200'}"
+									>
+										<div
+											class="w-5.5 h-5.5 bg-white rounded-full shadow-sm transition-transform duration-200 mx-0.5 {isSelected
+												? 'translate-x-5'
+												: 'translate-x-0'}"
+										></div>
+									</div>
+								</button>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+			</div>
+		{/each}
 	</div>
 
 	<div class="bg-white rounded-2xl shadow-sm border border-warm-100 overflow-hidden mt-6">
