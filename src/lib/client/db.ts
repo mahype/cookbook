@@ -62,14 +62,16 @@ export type Person = {
 	likes: string[];
 	dislikes: string[];
 	allergies: string[];
+	health_conditions: string[];
 	notes: string;
 	created_at: string;
 };
 
-export type PersonRow = Omit<Person, 'likes' | 'dislikes' | 'allergies'> & {
+export type PersonRow = Omit<Person, 'likes' | 'dislikes' | 'allergies' | 'health_conditions'> & {
 	likes: string;
 	dislikes: string;
 	allergies: string;
+	health_conditions: string;
 };
 
 export type MealPlan = {
@@ -193,6 +195,7 @@ function initSchema(db: Database) {
 			likes TEXT DEFAULT '[]',
 			dislikes TEXT DEFAULT '[]',
 			allergies TEXT DEFAULT '[]',
+			health_conditions TEXT DEFAULT '[]',
 			notes TEXT DEFAULT '',
 			created_at TEXT DEFAULT (datetime('now'))
 		);
@@ -288,7 +291,8 @@ export function parsePerson(row: PersonRow): Person {
 		...row,
 		likes: JSON.parse(row.likes),
 		dislikes: JSON.parse(row.dislikes),
-		allergies: JSON.parse(row.allergies)
+		allergies: JSON.parse(row.allergies),
+		health_conditions: JSON.parse(row.health_conditions || '[]')
 	};
 }
 
@@ -600,17 +604,19 @@ export async function createPerson(data: {
 	likes?: string[];
 	dislikes?: string[];
 	allergies?: string[];
+	health_conditions?: string[];
 	notes?: string;
 }): Promise<Person> {
 	const d = await getDb();
 	d.run(
-		'INSERT INTO persons (name, is_household, likes, dislikes, allergies, notes) VALUES (?, ?, ?, ?, ?, ?)',
+		'INSERT INTO persons (name, is_household, likes, dislikes, allergies, health_conditions, notes) VALUES (?, ?, ?, ?, ?, ?, ?)',
 		[
 			data.name,
 			data.is_household ?? 1,
 			JSON.stringify(data.likes ?? []),
 			JSON.stringify(data.dislikes ?? []),
 			JSON.stringify(data.allergies ?? []),
+			JSON.stringify(data.health_conditions ?? []),
 			data.notes ?? ''
 		]
 	);
@@ -628,6 +634,7 @@ export async function updatePerson(
 		likes: string[];
 		dislikes: string[];
 		allergies: string[];
+		health_conditions: string[];
 		notes: string;
 	}>
 ): Promise<Person | null> {
@@ -657,6 +664,10 @@ export async function updatePerson(
 	if (data.allergies !== undefined) {
 		sets.push('allergies = ?');
 		params.push(JSON.stringify(data.allergies));
+	}
+	if (data.health_conditions !== undefined) {
+		sets.push('health_conditions = ?');
+		params.push(JSON.stringify(data.health_conditions));
 	}
 	if (data.notes !== undefined) {
 		sets.push('notes = ?');

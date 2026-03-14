@@ -13,7 +13,7 @@ export const GET: RequestHandler = async () => {
 
 export const POST: RequestHandler = async ({ request }) => {
 	const body = await request.json();
-	const { name, is_household = 1, likes = [], dislikes = [], allergies = [], notes = '' } = body;
+	const { name, is_household = 1, likes = [], dislikes = [], allergies = [], health_conditions = [], notes = '' } = body;
 
 	if (!name || typeof name !== 'string' || !name.trim()) {
 		return json({ error: 'Name ist erforderlich' }, { status: 400 });
@@ -22,7 +22,7 @@ export const POST: RequestHandler = async ({ request }) => {
 	const db = getDb();
 	const result = db
 		.prepare(
-			'INSERT INTO persons (name, is_household, likes, dislikes, allergies, notes) VALUES (?, ?, ?, ?, ?, ?)'
+			'INSERT INTO persons (name, is_household, likes, dislikes, allergies, health_conditions, notes) VALUES (?, ?, ?, ?, ?, ?, ?)'
 		)
 		.run(
 			name.trim(),
@@ -30,6 +30,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			JSON.stringify(likes),
 			JSON.stringify(dislikes),
 			JSON.stringify(allergies),
+			JSON.stringify(health_conditions),
 			notes
 		);
 

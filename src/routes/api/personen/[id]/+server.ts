@@ -35,6 +35,10 @@ export const PUT: RequestHandler = async ({ params, request }) => {
 		fields.push('allergies = ?');
 		values.push(JSON.stringify(body.allergies));
 	}
+	if (body.health_conditions !== undefined) {
+		fields.push('health_conditions = ?');
+		values.push(JSON.stringify(body.health_conditions));
+	}
 	if (body.notes !== undefined) {
 		fields.push('notes = ?');
 		values.push(body.notes);

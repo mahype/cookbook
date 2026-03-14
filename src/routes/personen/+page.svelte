@@ -12,8 +12,29 @@
 	let formLikes = $state<string[]>([]);
 	let formDislikes = $state<string[]>([]);
 	let formAllergies = $state<string[]>([]);
+	let formHealthConditions = $state<string[]>([]);
 	let formNotes = $state('');
 	let saving = $state(false);
+
+	// All available health conditions
+	const healthConditionOptions = [
+		{ id: 'diabetes_typ1', label: 'Diabetes Typ 1', icon: '💉' },
+		{ id: 'diabetes_typ2', label: 'Diabetes Typ 2', icon: '🩸' },
+		{ id: 'laktoseintoleranz', label: 'Laktoseintoleranz', icon: '🥛' },
+		{ id: 'glutenunvertraeglichkeit', label: 'Glutenunverträglichkeit / Zöliakie', icon: '🌾' },
+		{ id: 'fruktoseintoleranz', label: 'Fruktoseintoleranz', icon: '🍎' },
+		{ id: 'histaminintoleranz', label: 'Histaminintoleranz', icon: '⚠️' },
+		{ id: 'nussallergie', label: 'Nussallergie', icon: '🥜' },
+		{ id: 'sojaallergie', label: 'Sojaallergie', icon: '🫘' },
+		{ id: 'fischallergie', label: 'Fisch-/Meeresfrüchte-Allergie', icon: '🐟' },
+		{ id: 'eiallergie', label: 'Eiallergie', icon: '🥚' },
+		{ id: 'bluthochdruck', label: 'Bluthochdruck (salzarm)', icon: '❤️' },
+		{ id: 'gicht', label: 'Gicht (purinarm)', icon: '🦶' },
+		{ id: 'nierenerkrankung', label: 'Nierenerkrankung', icon: '🫘' },
+		{ id: 'reizdarmsyndrom', label: 'Reizdarmsyndrom (FODMAP)', icon: '🫄' },
+		{ id: 'cholesterin', label: 'Hoher Cholesterinspiegel', icon: '🫀' },
+		{ id: 'schwangerschaft', label: 'Schwangerschaft', icon: '🤰' },
+	];
 
 	// Tag input state
 	let likesInput = $state('');
@@ -36,6 +57,14 @@
 
 	fetchPersons();
 
+	function toggleHealthCondition(id: string) {
+		if (formHealthConditions.includes(id)) {
+			formHealthConditions = formHealthConditions.filter(c => c !== id);
+		} else {
+			formHealthConditions = [...formHealthConditions, id];
+		}
+	}
+
 	function openNew() {
 		editingPerson = null;
 		formName = '';
@@ -43,6 +72,7 @@
 		formLikes = [];
 		formDislikes = [];
 		formAllergies = [];
+		formHealthConditions = [];
 		formNotes = '';
 		likesInput = '';
 		dislikesInput = '';
@@ -57,6 +87,7 @@
 		formLikes = [...person.likes];
 		formDislikes = [...person.dislikes];
 		formAllergies = [...person.allergies];
+		formHealthConditions = [...(person.health_conditions ?? [])];
 		formNotes = person.notes;
 		likesInput = '';
 		dislikesInput = '';
@@ -105,6 +136,7 @@
 			likes: formLikes,
 			dislikes: formDislikes,
 			allergies: formAllergies,
+			health_conditions: formHealthConditions,
 			notes: formNotes
 		};
 
@@ -199,7 +231,7 @@
 						</div>
 					</div>
 
-					{#if person.likes.length > 0 || person.dislikes.length > 0 || person.allergies.length > 0}
+					{#if person.likes.length > 0 || person.dislikes.length > 0 || person.allergies.length > 0 || (person.health_conditions ?? []).length > 0}
 						<div class="flex flex-wrap gap-1.5 mt-2">
 							{#each person.likes as tag}
 								<span class="text-[11px] font-medium bg-herb-100 text-herb-800 px-2 py-0.5 rounded-full">{tag}</span>
@@ -209,6 +241,12 @@
 							{/each}
 							{#each person.allergies as tag}
 								<span class="text-[11px] font-medium bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">{tag}</span>
+							{/each}
+							{#each (person.health_conditions ?? []) as condId}
+								{@const cond = healthConditionOptions.find(c => c.id === condId)}
+								{#if cond}
+									<span class="text-[11px] font-medium bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{cond.icon} {cond.label}</span>
+								{/if}
 							{/each}
 						</div>
 					{/if}
@@ -341,6 +379,29 @@
 						placeholder="Eingeben und Enter drücken"
 						class="w-full border border-warm-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
 					/>
+				</div>
+
+				<!-- Health Conditions -->
+				<div>
+					<label class="block text-sm font-medium text-warm-700 mb-2">Gesundheit & Verträglichkeiten</label>
+					<div class="grid grid-cols-1 gap-2">
+						{#each healthConditionOptions as option}
+							<button
+								type="button"
+								onclick={() => toggleHealthCondition(option.id)}
+								class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left text-sm transition-all min-h-[44px]
+									{formHealthConditions.includes(option.id) ? 'border-blue-400 bg-blue-50 text-blue-800' : 'border-warm-200 text-warm-600 hover:border-warm-300'}"
+							>
+								<span class="text-base flex-shrink-0">{option.icon}</span>
+								<span class="flex-1">{option.label}</span>
+								{#if formHealthConditions.includes(option.id)}
+									<svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+									</svg>
+								{/if}
+							</button>
+						{/each}
+					</div>
 				</div>
 
 				<!-- Notes -->

@@ -101,6 +101,12 @@ function initDb(db: Database.Database) {
 	if (!columns.some(c => c.name === 'servings')) {
 		db.exec("ALTER TABLE recipes ADD COLUMN servings INTEGER NOT NULL DEFAULT 2");
 	}
+
+	// Add health_conditions column to persons if it doesn't exist
+	const personCols = db.prepare("PRAGMA table_info(persons)").all() as { name: string }[];
+	if (!personCols.some(c => c.name === 'health_conditions')) {
+		db.exec("ALTER TABLE persons ADD COLUMN health_conditions TEXT DEFAULT '[]'");
+	}
 }
 
 export type Ingredient = {
@@ -149,14 +155,16 @@ export type Person = {
 	likes: string[];
 	dislikes: string[];
 	allergies: string[];
+	health_conditions: string[];
 	notes: string;
 	created_at: string;
 };
 
-export type PersonRow = Omit<Person, 'likes' | 'dislikes' | 'allergies'> & {
+export type PersonRow = Omit<Person, 'likes' | 'dislikes' | 'allergies' | 'health_conditions'> & {
 	likes: string;
 	dislikes: string;
 	allergies: string;
+	health_conditions: string;
 };
 
 export type MealPlan = {
@@ -190,7 +198,8 @@ export function parsePerson(row: PersonRow): Person {
 		...row,
 		likes: JSON.parse(row.likes),
 		dislikes: JSON.parse(row.dislikes),
-		allergies: JSON.parse(row.allergies)
+		allergies: JSON.parse(row.allergies),
+		health_conditions: JSON.parse(row.health_conditions || '[]')
 	};
 }
 
