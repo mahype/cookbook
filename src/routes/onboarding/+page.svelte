@@ -431,6 +431,12 @@
 			>
 				Weiter
 			</button>
+			<button
+				onclick={() => goto('/rezepte')}
+				class="w-full py-3 text-sm text-warm-400 hover:text-warm-600 transition-colors min-h-[44px]"
+			>
+				Überspringen
+			</button>
 		{:else}
 			<button
 				onclick={finish}
