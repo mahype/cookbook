@@ -18,9 +18,9 @@ export const load: PageServerLoad = async ({ url }) => {
 	const pantryItems = getPantryItems();
 	const pantryNames = pantryItems.map((p) => p.name.toLowerCase());
 
-	// --- Vorschläge data ---
+	// --- Vorschläge data (load most recent, not just today) ---
 	const today = new Date().toISOString().split('T')[0];
-	const suggestion = db.prepare('SELECT * FROM daily_suggestions WHERE date = ?').get(today) as
+	const suggestion = db.prepare('SELECT * FROM daily_suggestions ORDER BY date DESC LIMIT 1').get() as
 		| { id: number; date: string; recipe_ids: string }
 		| undefined;
 

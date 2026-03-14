@@ -398,6 +398,22 @@ export async function insertRecipe(recipe: {
 export async function deleteRecipe(id: number): Promise<boolean> {
 	const d = await getDb();
 	d.run('DELETE FROM recipes WHERE id = ?', [id]);
+	// Remove from daily_suggestions recipe_ids
+	const suggestions = rowsToObjects<{ id: number; recipe_ids: string }>(
+		d,
+		'SELECT id, recipe_ids FROM daily_suggestions'
+	);
+	for (const s of suggestions) {
+		const ids: number[] = JSON.parse(s.recipe_ids);
+		const filtered = ids.filter((rid) => rid !== id);
+		if (filtered.length !== ids.length) {
+			if (filtered.length === 0) {
+				d.run('DELETE FROM daily_suggestions WHERE id = ?', [s.id]);
+			} else {
+				d.run('UPDATE daily_suggestions SET recipe_ids = ? WHERE id = ?', [JSON.stringify(filtered), s.id]);
+			}
+		}
+	}
 	scheduleSave();
 	return d.getRowsModified() > 0;
 }
@@ -765,12 +781,21 @@ export async function getDailySuggestions(
 	date?: string
 ): Promise<{ date: string; recipes: Recipe[] }> {
 	const d = await getDb();
-	const targetDate = date ?? new Date().toISOString().split('T')[0];
-	const suggestion = rowToObject<{ id: number; date: string; recipe_ids: string }>(
-		d,
-		'SELECT * FROM daily_suggestions WHERE date = ?',
-		[targetDate]
-	);
+	let suggestion: { id: number; date: string; recipe_ids: string } | undefined;
+	if (date) {
+		suggestion = rowToObject<{ id: number; date: string; recipe_ids: string }>(
+			d,
+			'SELECT * FROM daily_suggestions WHERE date = ?',
+			[date]
+		);
+	} else {
+		suggestion = rowToObject<{ id: number; date: string; recipe_ids: string }>(
+			d,
+			'SELECT * FROM daily_suggestions ORDER BY date DESC LIMIT 1',
+			[]
+		);
+	}
+	const targetDate = suggestion?.date ?? date ?? new Date().toISOString().split('T')[0];
 
 	if (!suggestion) {
 		return { date: targetDate, recipes: [] };

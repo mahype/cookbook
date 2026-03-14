@@ -129,6 +129,31 @@
 		});
 	}
 
+	let deleteTarget: any = $state(null);
+	let deleting = $state(false);
+
+	async function confirmDelete() {
+		if (!deleteTarget) return;
+		deleting = true;
+		try {
+			if (isCapacitor()) {
+				const db = await import('$lib/client/db');
+				await db.deleteRecipe(deleteTarget.id);
+			} else {
+				await fetch(`/api/rezepte/${deleteTarget.id}`, { method: 'DELETE' });
+			}
+			localData = {
+				...localData,
+				suggestionRecipes: (localData.suggestionRecipes ?? []).filter((r) => r.id !== deleteTarget.id)
+			};
+			deleteTarget = null;
+		} catch (e) {
+			console.error('Delete failed', e);
+		} finally {
+			deleting = false;
+		}
+	}
+
 	let fabOpen = $state(false);
 	let generating = $state(false);
 	let generateError = $state('');
@@ -307,14 +332,25 @@
 		{:else}
 			<div class="space-y-4 mb-6">
 				{#each localData.suggestionRecipes ?? [] as recipe (recipe.id)}
-					<RecipeCard
-						{recipe}
-						approvable={true}
-						expandable={true}
-						{pantryNames}
-						onPantryAdd={handlePantryAdd}
-						onPantryRemove={handlePantryRemove}
-					/>
+					<div class="relative">
+						<button
+							onclick={() => (deleteTarget = recipe)}
+							class="absolute -top-2 -right-2 z-10 w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center text-red-400 hover:bg-red-500 hover:text-white active:bg-red-600 active:text-white transition-colors"
+							aria-label="Rezept verwerfen"
+						>
+							<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+							</svg>
+						</button>
+						<RecipeCard
+							{recipe}
+							approvable={true}
+							expandable={true}
+							{pantryNames}
+							onPantryAdd={handlePantryAdd}
+							onPantryRemove={handlePantryRemove}
+						/>
+					</div>
 				{/each}
 			</div>
 			<div class="text-center py-6">
@@ -435,6 +471,46 @@
 		{/if}
 	{/if}
 </div>
+
+<!-- Delete confirmation dialog -->
+{#if deleteTarget}
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div
+		class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+		onclick={() => !deleting && (deleteTarget = null)}
+		onkeydown={(e) => e.key === 'Escape' && !deleting && (deleteTarget = null)}
+	>
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div
+			class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl"
+			onclick={(e) => e.stopPropagation()}
+			onkeydown={() => {}}
+		>
+			<h2 class="text-lg font-bold text-warm-900 mb-1">Rezept verwerfen?</h2>
+			<p class="text-warm-500 text-sm mb-6">{deleteTarget.name}</p>
+			<div class="flex gap-3">
+				<button
+					onclick={() => (deleteTarget = null)}
+					disabled={deleting}
+					class="flex-1 px-4 py-2.5 rounded-xl border border-warm-200 text-warm-600 font-medium hover:bg-warm-50 transition-colors disabled:opacity-50"
+				>
+					Abbrechen
+				</button>
+				<button
+					onclick={confirmDelete}
+					disabled={deleting}
+					class="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
+				>
+					{#if deleting}
+						Lösche...
+					{:else}
+						Verwerfen
+					{/if}
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
 
 <!-- FAB overlay backdrop -->
 {#if fabOpen}
