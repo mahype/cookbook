@@ -132,6 +132,87 @@
 	function totalActive(): number {
 		return Object.values(ratings).filter(v => v > 0).length;
 	}
+
+	// --- AI Provider ---
+	const providerList = [
+		{ id: 'openai', name: 'OpenAI', defaultUrl: 'https://api.openai.com/v1', defaultModel: 'gpt-4o-mini' },
+		{ id: 'anthropic', name: 'Anthropic', defaultUrl: 'https://api.anthropic.com/v1', defaultModel: 'claude-sonnet-4-20250514' },
+		{ id: 'mistral', name: 'Mistral', defaultUrl: 'https://api.mistral.ai/v1', defaultModel: 'mistral-small-latest' },
+		{ id: 'openrouter', name: 'OpenRouter', defaultUrl: 'https://openrouter.ai/api/v1', defaultModel: 'auto' },
+		{ id: 'ollama', name: 'Ollama', defaultUrl: 'http://localhost:11434/v1', defaultModel: 'llama3.2' },
+		{ id: 'custom', name: 'Custom', defaultUrl: '', defaultModel: '' }
+	];
+
+	let aiProviderId = $state<string>(data.aiProvider?.id ?? '');
+	let aiApiKey = $state(data.aiProvider?.apiKey ?? '');
+	let aiModel = $state(data.aiProvider?.model ?? '');
+	let aiBaseUrl = $state(data.aiProvider?.baseUrl ?? '');
+	let showApiKey = $state(false);
+	let showAdvanced = $state(false);
+	let aiTesting = $state(false);
+	let aiTestResult = $state<{ success: boolean; error?: string; model?: string } | null>(null);
+	let aiSaving = $state(false);
+
+	function selectProvider(id: string) {
+		const p = providerList.find(p => p.id === id);
+		if (!p) return;
+		aiProviderId = id;
+		aiBaseUrl = p.defaultUrl;
+		aiModel = p.defaultModel;
+		aiApiKey = id === aiProviderId ? aiApiKey : '';
+		aiTestResult = null;
+	}
+
+	async function saveAI() {
+		if (!aiProviderId) return;
+		aiSaving = true;
+		try {
+			await fetch('/api/einstellungen', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					ai_provider: {
+						id: aiProviderId,
+						name: providerList.find(p => p.id === aiProviderId)?.name ?? aiProviderId,
+						baseUrl: aiBaseUrl,
+						model: aiModel,
+						apiKey: aiApiKey
+					}
+				})
+			});
+			message = 'KI-Einstellungen gespeichert!';
+			setTimeout(() => (message = ''), 2000);
+		} catch {
+			message = 'Fehler beim Speichern';
+		} finally {
+			aiSaving = false;
+		}
+	}
+
+	async function testAI() {
+		aiTesting = true;
+		aiTestResult = null;
+		try {
+			const res = await fetch('/api/ai/test', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					provider: {
+						id: aiProviderId,
+						name: providerList.find(p => p.id === aiProviderId)?.name ?? '',
+						baseUrl: aiBaseUrl,
+						model: aiModel,
+						apiKey: aiApiKey
+					}
+				})
+			});
+			aiTestResult = await res.json();
+		} catch {
+			aiTestResult = { success: false, error: 'Netzwerkfehler' };
+		} finally {
+			aiTesting = false;
+		}
+	}
 </script>
 
 <div class="max-w-lg mx-auto px-4 pt-6">
@@ -158,6 +239,110 @@
 					class="w-11 h-11 rounded-full bg-spice-100 text-spice-700 flex items-center justify-center text-2xl font-bold hover:bg-spice-200 active:bg-spice-300 transition-colors disabled:opacity-30"
 				>+</button>
 			</div>
+		</div>
+	</div>
+
+	<!-- AI Provider Settings -->
+	<div class="bg-white rounded-2xl shadow-sm border border-warm-100 overflow-hidden mb-6">
+		<div class="px-5 py-4">
+			<h2 class="text-sm font-semibold text-warm-500 uppercase tracking-wide mb-1">KI-Einstellungen</h2>
+			<p class="text-xs text-warm-400 mb-4">Wähle deinen KI-Anbieter für Rezeptvorschläge und -verarbeitung.</p>
+
+			<!-- Provider buttons -->
+			<div class="grid grid-cols-3 gap-2 mb-4">
+				{#each providerList as p}
+					<button
+						onclick={() => selectProvider(p.id)}
+						class="py-2.5 px-3 rounded-xl text-sm font-medium transition-colors {aiProviderId === p.id ? 'bg-spice-500 text-white' : 'bg-warm-100 text-warm-600 hover:bg-warm-200'}"
+					>{p.name}</button>
+				{/each}
+			</div>
+
+			{#if aiProviderId}
+				<!-- API Key -->
+				{#if aiProviderId !== 'ollama'}
+					<div class="mb-3">
+						<label class="text-xs font-medium text-warm-500 block mb-1">API-Key</label>
+						<div class="relative">
+							<input
+								type={showApiKey ? 'text' : 'password'}
+								bind:value={aiApiKey}
+								placeholder="sk-..."
+								autocomplete="off"
+								class="w-full rounded-xl border border-warm-200 bg-warm-50 px-4 py-2.5 text-sm text-warm-800 pr-10 focus:border-spice-400 focus:ring-2 focus:ring-spice-200 focus:outline-none"
+							/>
+							<button
+								onclick={() => (showApiKey = !showApiKey)}
+								class="absolute right-3 top-1/2 -translate-y-1/2 text-warm-400 hover:text-warm-600"
+							>
+								<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									{#if showApiKey}
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+									{:else}
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+									{/if}
+								</svg>
+							</button>
+						</div>
+					</div>
+				{:else}
+					<p class="text-xs text-herb-600 bg-herb-50 px-3 py-2 rounded-xl mb-3">Kein API-Key nötig – Ollama läuft lokal.</p>
+				{/if}
+
+				<!-- Model -->
+				<div class="mb-3">
+					<label class="text-xs font-medium text-warm-500 block mb-1">Modell</label>
+					<input
+						type="text"
+						bind:value={aiModel}
+						placeholder="z.B. gpt-4o-mini"
+						class="w-full rounded-xl border border-warm-200 bg-warm-50 px-4 py-2.5 text-sm text-warm-800 focus:border-spice-400 focus:ring-2 focus:ring-spice-200 focus:outline-none"
+					/>
+				</div>
+
+				<!-- Advanced: Base URL -->
+				<button onclick={() => (showAdvanced = !showAdvanced)} class="text-xs text-warm-400 hover:text-warm-600 mb-2 flex items-center gap-1">
+					<svg class="w-3 h-3 transition-transform {showAdvanced ? 'rotate-90' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+					Erweitert
+				</button>
+				{#if showAdvanced}
+					<div class="mb-3">
+						<label class="text-xs font-medium text-warm-500 block mb-1">Base-URL</label>
+						<input
+							type="text"
+							bind:value={aiBaseUrl}
+							placeholder="https://api.openai.com/v1"
+							class="w-full rounded-xl border border-warm-200 bg-warm-50 px-4 py-2.5 text-sm text-warm-800 focus:border-spice-400 focus:ring-2 focus:ring-spice-200 focus:outline-none"
+						/>
+					</div>
+				{/if}
+
+				<!-- Action buttons -->
+				<div class="flex gap-2 mt-4">
+					<button
+						onclick={testAI}
+						disabled={aiTesting}
+						class="flex-1 py-2.5 rounded-xl text-sm font-semibold border-2 border-spice-500 text-spice-600 hover:bg-spice-50 transition-colors disabled:opacity-50"
+					>{aiTesting ? 'Teste...' : 'Verbindung testen'}</button>
+					<button
+						onclick={saveAI}
+						disabled={aiSaving}
+						class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-spice-500 hover:bg-spice-600 transition-colors disabled:opacity-50"
+					>{aiSaving ? 'Speichert...' : 'Speichern'}</button>
+				</div>
+
+				<!-- Test result -->
+				{#if aiTestResult}
+					<div class="mt-3 text-sm px-3 py-2 rounded-xl {aiTestResult.success ? 'bg-herb-50 text-herb-700' : 'bg-red-50 text-red-700'}">
+						{#if aiTestResult.success}
+							✓ Verbindung OK{aiTestResult.model ? ` (${aiTestResult.model})` : ''}
+						{:else}
+							✗ {aiTestResult.error}
+						{/if}
+					</div>
+				{/if}
+			{/if}
 		</div>
 	</div>
 

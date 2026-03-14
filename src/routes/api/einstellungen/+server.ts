@@ -18,7 +18,8 @@ export const GET: RequestHandler = async () => {
 	const cuisine_preferences = loadCuisinePreferences();
 	const recipe_notes = getPreference('recipe_notes') ?? '';
 	const default_servings = parseInt(getPreference('default_servings') ?? '2', 10);
-	return json({ cuisine_preferences, recipe_notes, default_servings });
+	const ai_provider = JSON.parse(getPreference('ai_provider') ?? 'null');
+	return json({ cuisine_preferences, recipe_notes, default_servings, ai_provider });
 };
 
 export const PUT: RequestHandler = async ({ request }) => {
@@ -53,8 +54,19 @@ export const PUT: RequestHandler = async ({ request }) => {
 		setPreference('recipe_notes', body.recipe_notes);
 	}
 
+	if ('ai_provider' in body) {
+		if (body.ai_provider === null) {
+			setPreference('ai_provider', 'null');
+		} else if (typeof body.ai_provider === 'object') {
+			setPreference('ai_provider', JSON.stringify(body.ai_provider));
+		} else {
+			return json({ error: 'ai_provider muss ein Objekt oder null sein' }, { status: 400 });
+		}
+	}
+
 	const cuisine_preferences = loadCuisinePreferences();
 	const recipe_notes = getPreference('recipe_notes') ?? '';
 	const default_servings = parseInt(getPreference('default_servings') ?? '2', 10);
-	return json({ cuisine_preferences, recipe_notes, default_servings });
+	const ai_provider = JSON.parse(getPreference('ai_provider') ?? 'null');
+	return json({ cuisine_preferences, recipe_notes, default_servings, ai_provider });
 };

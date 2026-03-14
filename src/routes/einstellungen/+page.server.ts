@@ -15,5 +15,6 @@ export const load: PageServerLoad = async () => {
 	}
 	const recipeNotes = getPreference('recipe_notes') ?? '';
 	const defaultServings = parseInt(getPreference('default_servings') ?? '2', 10);
-	return { cuisinePreferences, recipeNotes, defaultServings };
+	const aiProvider = JSON.parse(getPreference('ai_provider') ?? 'null');
+	return { cuisinePreferences, recipeNotes, defaultServings, aiProvider };
 };
