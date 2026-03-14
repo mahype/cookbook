@@ -68,11 +68,19 @@
 		Mittel: 'bg-spice-100 text-spice-800'
 	};
 
-	const cuisineEmojis: Record<string, string> = {
-		Deutsch: '🇩🇪',
-		Asiatisch: '🥢',
-		Italienisch: '🇮🇹',
-		Mexikanisch: '🌮'
+	// SVG icon paths for cuisine placeholders (no emojis — broken in WKWebView)
+	const cuisineIcons: Record<string, string> = {
+		// Chopsticks
+		Asiatisch: 'M9 3l1.5 18M14.5 3L13 21M7 12h10',
+		Thailändisch: 'M9 3l1.5 18M14.5 3L13 21M7 12h10',
+		Japanisch: 'M9 3l1.5 18M14.5 3L13 21M7 12h10',
+		Koreanisch: 'M9 3l1.5 18M14.5 3L13 21M7 12h10',
+		Chinesisch: 'M9 3l1.5 18M14.5 3L13 21M7 12h10',
+		Vietnamesisch: 'M9 3l1.5 18M14.5 3L13 21M7 12h10',
+		Indonesisch: 'M9 3l1.5 18M14.5 3L13 21M7 12h10',
+		Malaysisch: 'M9 3l1.5 18M14.5 3L13 21M7 12h10',
+		// Default pot
+		default: 'M4 12h16v1c0 5-3.5 8-8 8s-8-3-8-8v-1zM3 12h18M6 12V9M18 12V9M12 4v2M9 5l1 2M15 5l-1 2'
 	};
 
 	function placeholderGradient(name: string) {
@@ -97,17 +105,21 @@
 				}}
 			/>
 			<div
-				class="h-36 flex items-center justify-center text-4xl hidden"
+				class="h-36 flex items-center justify-center hidden"
 				style="background: {placeholderGradient(recipe.name)}"
 			>
-				{cuisineEmojis[recipe.cuisine] || '🍽️'}
+				<svg class="w-16 h-16 text-white/70" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" d={cuisineIcons[recipe.cuisine] || cuisineIcons.default} />
+				</svg>
 			</div>
 		{:else}
 			<div
-				class="h-36 flex items-center justify-center text-4xl"
+				class="h-36 flex items-center justify-center"
 				style="background: {placeholderGradient(recipe.name)}"
 			>
-				{cuisineEmojis[recipe.cuisine] || '🍽️'}
+				<svg class="w-16 h-16 text-white/70" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" d={cuisineIcons[recipe.cuisine] || cuisineIcons.default} />
+				</svg>
 			</div>
 		{/if}
 		{#if recipe.pantry_based}
