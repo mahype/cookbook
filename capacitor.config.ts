@@ -5,11 +5,10 @@ const config: CapacitorConfig = {
 	appName: 'Cookbook',
 	webDir: 'build',
 	server: {
-		// In dev mode, load from dev server instead of local files
-		...(process.env.CAPACITOR_DEV === 'true' ? {
-			url: 'http://localhost:5178',
-			cleartext: true
-		} : {})
+		// Point to dev server (SvelteKit) for now
+		// TODO: Remove this when migrated to client-side SQLite
+		url: 'http://10.0.0.97:5178',
+		cleartext: true
 	},
 	ios: {
 		scheme: 'Cookbook'
