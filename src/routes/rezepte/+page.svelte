@@ -147,7 +147,8 @@
 			}
 			localData = {
 				...localData,
-				suggestionRecipes: (localData.suggestionRecipes ?? []).filter((r) => r.id !== deleteTarget.id)
+				suggestionRecipes: (localData.suggestionRecipes ?? []).filter((r) => r.id !== deleteTarget.id),
+				recipes: (localData.recipes ?? []).filter((r) => r.id !== deleteTarget.id)
 			};
 			deleteTarget = null;
 		} catch (e) {
@@ -368,7 +369,6 @@
 						<RecipeCard
 							{recipe}
 							approvable={true}
-							expandable={true}
 							dismissable={true}
 							{pantryNames}
 							onPantryAdd={handlePantryAdd}
@@ -488,7 +488,7 @@
 		{:else}
 			<div class="space-y-4 pb-24">
 				{#each localData.recipes ?? [] as recipe (recipe.id)}
-					<RecipeCard {recipe} expandable={true} {pantryNames} onPantryAdd={handlePantryAdd} onPantryRemove={handlePantryRemove} />
+					<RecipeCard {recipe} {pantryNames} onPantryAdd={handlePantryAdd} onPantryRemove={handlePantryRemove} onDismiss={(r) => (deleteTarget = r)} />
 				{/each}
 			</div>
 		{/if}

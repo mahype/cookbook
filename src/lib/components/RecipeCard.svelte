@@ -1,12 +1,10 @@
 <script lang="ts">
 	import type { Recipe } from '$lib/server/db';
-	import { slide } from 'svelte/transition';
 	import RecipeDetails from './RecipeDetails.svelte';
 
 	type Props = {
 		recipe: Recipe;
 		approvable?: boolean;
-		expandable?: boolean;
 		dismissable?: boolean;
 		pantryNames?: string[];
 		onPantryAdd?: (name: string) => void;
@@ -18,7 +16,6 @@
 	let {
 		recipe,
 		approvable = false,
-		expandable = false,
 		dismissable = false,
 		pantryNames = [],
 		onPantryAdd,
@@ -30,6 +27,10 @@
 	let expanded = $state(false);
 	let approved = $state(recipe.status === 'approved');
 	let approving = $state(false);
+
+	function toggleDetails() {
+		expanded = !expanded;
+	}
 
 	async function approveRecipe(e: Event) {
 		e.preventDefault();
@@ -76,9 +77,7 @@
 		Mittel: 'bg-spice-100 text-spice-800'
 	};
 
-	// SVG icon paths for cuisine placeholders (no emojis — broken in WKWebView)
 	const cuisineIcons: Record<string, string> = {
-		// Chopsticks
 		Asiatisch: 'M9 3l1.5 18M14.5 3L13 21M7 12h10',
 		Thailändisch: 'M9 3l1.5 18M14.5 3L13 21M7 12h10',
 		Japanisch: 'M9 3l1.5 18M14.5 3L13 21M7 12h10',
@@ -87,7 +86,6 @@
 		Vietnamesisch: 'M9 3l1.5 18M14.5 3L13 21M7 12h10',
 		Indonesisch: 'M9 3l1.5 18M14.5 3L13 21M7 12h10',
 		Malaysisch: 'M9 3l1.5 18M14.5 3L13 21M7 12h10',
-		// Default pot
 		default: 'M4 12h16v1c0 5-3.5 8-8 8s-8-3-8-8v-1zM3 12h18M6 12V9M18 12V9M12 4v2M9 5l1 2M15 5l-1 2'
 	};
 
@@ -99,7 +97,14 @@
 	}
 </script>
 
-{#snippet cardImage()}
+<div
+	class="rounded-2xl shadow-sm overflow-hidden border transition-all duration-200 {approved && approvable
+		? 'border-green-200 opacity-60'
+		: recipe.pantry_based
+			? 'bg-white border-orange-200 hover:shadow-md'
+			: 'bg-white border-warm-100 hover:shadow-md'}"
+>
+	<!-- Image -->
 	<div class="relative overflow-hidden">
 		{#if recipe.image_url}
 			<img
@@ -152,6 +157,7 @@
 		{:else if approvable && !approved}
 			<div class="absolute top-3 right-3">
 				<button
+					type="button"
 					onclick={approveRecipe}
 					disabled={approving}
 					class="w-11 h-11 rounded-full bg-orange-500 hover:bg-orange-600 active:scale-95 text-white flex items-center justify-center shadow-lg transition-all duration-150"
@@ -170,83 +176,64 @@
 			</div>
 		{/if}
 	</div>
-{/snippet}
 
-{#snippet cardContent()}
+	<!-- Content -->
 	<div class="p-4">
 		<div class="flex items-start justify-between gap-2 mb-2">
 			<h3 class="font-semibold text-warm-900 text-base leading-tight">{recipe.name}</h3>
 		</div>
 		<p class="text-warm-500 text-sm mb-3 line-clamp-2">{recipe.description}</p>
 		<div class="flex flex-wrap gap-1.5">
-			<span
-				class="text-xs px-2 py-0.5 rounded-full {cuisineColors[recipe.cuisine] ||
-					'bg-warm-100 text-warm-700'}"
-			>
+			<span class="text-xs px-2 py-0.5 rounded-full {cuisineColors[recipe.cuisine] || 'bg-warm-100 text-warm-700'}">
 				{recipe.cuisine}
 			</span>
 			<span class="text-xs px-2 py-0.5 rounded-full {difficultyColors[recipe.difficulty]}">
 				{recipe.difficulty}
 			</span>
 			<span class="text-xs px-2 py-0.5 rounded-full bg-warm-100 text-warm-700">
-				⏱ {recipe.prep_time} Min
+				{recipe.prep_time} Min
 			</span>
 			<span class="text-xs px-2 py-0.5 rounded-full bg-warm-100 text-warm-700">
 				~{recipe.cost_estimate.toFixed(2)}€
 			</span>
 		</div>
 	</div>
-{/snippet}
 
-<div
-	class="rounded-2xl shadow-sm border transition-all duration-200 {approved && approvable
-		? 'border-green-200 opacity-60'
-		: recipe.pantry_based
-			? 'bg-white border-orange-200 hover:shadow-md'
-			: 'bg-white border-warm-100 hover:shadow-md'}"
->
-	{#if !expandable}
-		<a href="/rezepte/{recipe.id}" class="block">
-			{@render cardImage()}
-			{@render cardContent()}
-		</a>
-	{:else}
-		{@render cardImage()}
-		{@render cardContent()}
-
-		<div class="border-t border-warm-100 flex">
+	<!-- Action bar: Details + Delete -->
+	<div class="border-t border-warm-100 flex">
+		<button
+			type="button"
+			onclick={toggleDetails}
+			class="flex-1 flex items-center justify-center gap-1.5 py-3.5 min-h-[44px] text-sm font-semibold bg-orange-500 text-white active:bg-orange-700 transition-colors"
+		>
+			<span>{expanded ? 'Zuklappen' : 'Details anzeigen'}</span>
+			<svg
+				class="w-4 h-4 transition-transform duration-200 {expanded ? 'rotate-180' : ''}"
+				fill="none"
+				stroke="currentColor"
+				viewBox="0 0 24 24"
+			>
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+			</svg>
+		</button>
+		{#if (dismissable || !approvable) && onDismiss}
 			<button
 				type="button"
-				onclick={() => { expanded = !expanded; }}
-				class="flex-1 flex items-center justify-center gap-1.5 py-3.5 min-h-[44px] text-sm font-semibold bg-orange-500 text-white active:bg-orange-700 transition-colors"
+				onclick={() => onDismiss(recipe)}
+				class="w-12 flex items-center justify-center bg-orange-500 active:bg-red-600 text-white transition-colors border-l border-orange-400"
+				aria-label="Rezept löschen"
 			>
-				<span>{expanded ? 'Zuklappen' : 'Details anzeigen'}</span>
-				<svg
-					class="w-4 h-4 transition-transform duration-200 {expanded ? 'rotate-180' : ''}"
-					fill="none"
-					stroke="currentColor"
-					viewBox="0 0 24 24"
-				>
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+				<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
 				</svg>
 			</button>
-			{#if dismissable && onDismiss}
-				<button
-					type="button"
-					onclick={() => onDismiss(recipe)}
-					class="w-12 flex items-center justify-center bg-orange-500 active:bg-red-600 text-white transition-colors border-l border-orange-400"
-					aria-label="Rezept verwerfen"
-				>
-					<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-					</svg>
-				</button>
-			{/if}
-		</div>
-		{#if expanded}
-			<div class="border-t border-warm-100">
-				<RecipeDetails {recipe} {pantryNames} {onPantryAdd} {onPantryRemove} />
-			</div>
 		{/if}
+	</div>
+
+	<!-- Expanded details -->
+	{#if expanded}
+		<div class="border-t border-warm-100">
+			<RecipeDetails {recipe} {pantryNames} {onPantryAdd} {onPantryRemove} />
+		</div>
 	{/if}
 </div>
