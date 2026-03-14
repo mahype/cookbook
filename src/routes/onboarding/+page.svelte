@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { fly, fade } from 'svelte/transition';
 	import { isCapacitor, savePreference } from '$lib/stores/data';
+	import { healthConditionOptions } from '$lib/healthConditions';
 
 	let step = $state(1);
 	let direction = $state(1); // 1 = forward, -1 = back
@@ -158,25 +159,6 @@
 	}
 
 	// --- Step 2: Health Conditions ---
-	const healthConditionOptions = [
-		{ id: 'diabetes_typ1', label: 'Diabetes Typ 1', icon: '💉' },
-		{ id: 'diabetes_typ2', label: 'Diabetes Typ 2', icon: '🩸' },
-		{ id: 'laktoseintoleranz', label: 'Laktoseintoleranz', icon: '🥛' },
-		{ id: 'glutenunvertraeglichkeit', label: 'Glutenunverträglichkeit / Zöliakie', icon: '🌾' },
-		{ id: 'fruktoseintoleranz', label: 'Fruktoseintoleranz', icon: '🍎' },
-		{ id: 'histaminintoleranz', label: 'Histaminintoleranz', icon: '⚠️' },
-		{ id: 'nussallergie', label: 'Nussallergie', icon: '🥜' },
-		{ id: 'sojaallergie', label: 'Sojaallergie', icon: '🫘' },
-		{ id: 'fischallergie', label: 'Fisch-/Meeresfrüchte-Allergie', icon: '🐟' },
-		{ id: 'eiallergie', label: 'Eiallergie', icon: '🥚' },
-		{ id: 'bluthochdruck', label: 'Bluthochdruck (salzarm)', icon: '❤️' },
-		{ id: 'gicht', label: 'Gicht (purinarm)', icon: '🦶' },
-		{ id: 'nierenerkrankung', label: 'Nierenerkrankung', icon: '🫘' },
-		{ id: 'reizdarmsyndrom', label: 'Reizdarmsyndrom (FODMAP)', icon: '🫄' },
-		{ id: 'cholesterin', label: 'Hoher Cholesterinspiegel', icon: '🫀' },
-		{ id: 'schwangerschaft', label: 'Schwangerschaft', icon: '🤰' },
-	];
-
 	let healthConditions = $state<string[]>([]);
 
 	function toggleHealthCondition(id: string) {
@@ -428,7 +410,7 @@
 								class="w-full flex items-center gap-2.5 px-4 py-3 rounded-xl border-2 text-left text-sm transition-all min-h-[48px]
 									{healthConditions.includes(option.id) ? 'border-blue-400 bg-blue-50 text-blue-800' : 'border-warm-200 text-warm-600 hover:border-warm-300'}"
 							>
-								<span class="text-base flex-shrink-0">{option.icon}</span>
+								<svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">{@html option.icon}</svg>
 								<span class="flex-1 font-medium">{option.label}</span>
 								{#if healthConditions.includes(option.id)}
 									<svg class="w-5 h-5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

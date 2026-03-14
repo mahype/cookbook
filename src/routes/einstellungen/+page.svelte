@@ -1,29 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { isCapacitor, loadPreferences, savePreference } from '$lib/stores/data';
+	import { healthConditionOptions } from '$lib/healthConditions';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
-
-	// Health conditions
-	const healthConditionOptions = [
-		{ id: 'diabetes_typ1', label: 'Diabetes Typ 1', icon: '💉' },
-		{ id: 'diabetes_typ2', label: 'Diabetes Typ 2', icon: '🩸' },
-		{ id: 'laktoseintoleranz', label: 'Laktoseintoleranz', icon: '🥛' },
-		{ id: 'glutenunvertraeglichkeit', label: 'Glutenunverträglichkeit / Zöliakie', icon: '🌾' },
-		{ id: 'fruktoseintoleranz', label: 'Fruktoseintoleranz', icon: '🍎' },
-		{ id: 'histaminintoleranz', label: 'Histaminintoleranz', icon: '⚠️' },
-		{ id: 'nussallergie', label: 'Nussallergie', icon: '🥜' },
-		{ id: 'sojaallergie', label: 'Sojaallergie', icon: '🫘' },
-		{ id: 'fischallergie', label: 'Fisch-/Meeresfrüchte-Allergie', icon: '🐟' },
-		{ id: 'eiallergie', label: 'Eiallergie', icon: '🥚' },
-		{ id: 'bluthochdruck', label: 'Bluthochdruck (salzarm)', icon: '❤️' },
-		{ id: 'gicht', label: 'Gicht (purinarm)', icon: '🦶' },
-		{ id: 'nierenerkrankung', label: 'Nierenerkrankung', icon: '🫘' },
-		{ id: 'reizdarmsyndrom', label: 'Reizdarmsyndrom (FODMAP)', icon: '🫄' },
-		{ id: 'cholesterin', label: 'Hoher Cholesterinspiegel', icon: '🫀' },
-		{ id: 'schwangerschaft', label: 'Schwangerschaft', icon: '🤰' },
-	];
 
 	let healthConditions = $state<string[]>([]);
 	let healthSaveState: ButtonState = $state('idle');
@@ -421,7 +402,7 @@
 						class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left text-sm transition-all min-h-[44px]
 							{healthConditions.includes(option.id) ? 'border-blue-400 bg-blue-50 text-blue-800' : 'border-warm-200 text-warm-600 hover:border-warm-300'}"
 					>
-						<span class="text-base flex-shrink-0">{option.icon}</span>
+						<svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">{@html option.icon}</svg>
 						<span class="flex-1">{option.label}</span>
 						{#if healthConditions.includes(option.id)}
 							<svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

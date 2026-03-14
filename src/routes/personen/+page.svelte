@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Person } from '$lib/server/db';
+	import { healthConditionOptions } from '$lib/healthConditions';
 
 	let persons = $state<Person[]>([]);
 	let loading = $state(true);
@@ -15,26 +16,6 @@
 	let formHealthConditions = $state<string[]>([]);
 	let formNotes = $state('');
 	let saving = $state(false);
-
-	// All available health conditions
-	const healthConditionOptions = [
-		{ id: 'diabetes_typ1', label: 'Diabetes Typ 1', icon: '💉' },
-		{ id: 'diabetes_typ2', label: 'Diabetes Typ 2', icon: '🩸' },
-		{ id: 'laktoseintoleranz', label: 'Laktoseintoleranz', icon: '🥛' },
-		{ id: 'glutenunvertraeglichkeit', label: 'Glutenunverträglichkeit / Zöliakie', icon: '🌾' },
-		{ id: 'fruktoseintoleranz', label: 'Fruktoseintoleranz', icon: '🍎' },
-		{ id: 'histaminintoleranz', label: 'Histaminintoleranz', icon: '⚠️' },
-		{ id: 'nussallergie', label: 'Nussallergie', icon: '🥜' },
-		{ id: 'sojaallergie', label: 'Sojaallergie', icon: '🫘' },
-		{ id: 'fischallergie', label: 'Fisch-/Meeresfrüchte-Allergie', icon: '🐟' },
-		{ id: 'eiallergie', label: 'Eiallergie', icon: '🥚' },
-		{ id: 'bluthochdruck', label: 'Bluthochdruck (salzarm)', icon: '❤️' },
-		{ id: 'gicht', label: 'Gicht (purinarm)', icon: '🦶' },
-		{ id: 'nierenerkrankung', label: 'Nierenerkrankung', icon: '🫘' },
-		{ id: 'reizdarmsyndrom', label: 'Reizdarmsyndrom (FODMAP)', icon: '🫄' },
-		{ id: 'cholesterin', label: 'Hoher Cholesterinspiegel', icon: '🫀' },
-		{ id: 'schwangerschaft', label: 'Schwangerschaft', icon: '🤰' },
-	];
 
 	// Tag input state
 	let likesInput = $state('');
@@ -245,7 +226,7 @@
 							{#each (person.health_conditions ?? []) as condId}
 								{@const cond = healthConditionOptions.find(c => c.id === condId)}
 								{#if cond}
-									<span class="text-[11px] font-medium bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{cond.icon} {cond.label}</span>
+									<span class="text-[11px] font-medium bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full inline-flex items-center gap-1"><svg class="w-3 h-3 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">{@html cond.icon}</svg>{cond.label}</span>
 								{/if}
 							{/each}
 						</div>
@@ -392,7 +373,7 @@
 								class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left text-sm transition-all min-h-[44px]
 									{formHealthConditions.includes(option.id) ? 'border-blue-400 bg-blue-50 text-blue-800' : 'border-warm-200 text-warm-600 hover:border-warm-300'}"
 							>
-								<span class="text-base flex-shrink-0">{option.icon}</span>
+								<svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">{@html option.icon}</svg>
 								<span class="flex-1">{option.label}</span>
 								{#if formHealthConditions.includes(option.id)}
 									<svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
