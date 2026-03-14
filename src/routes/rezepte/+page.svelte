@@ -46,13 +46,25 @@
 		{ value: 'gespeichert', label: 'Gespeichert' }
 	];
 
-	function switchTab(value: string) {
+	async function switchTab(value: string) {
 		activeTab = value;
 		const params = new URLSearchParams(window.location.search);
 		if (value === 'vorschlaege') {
 			params.delete('tab');
+			// Reload suggestions when switching back
+			if (isCapacitor()) {
+				try {
+					const suggestions = await loadDailySuggestions();
+					localData = { ...localData, date: suggestions.date, suggestionRecipes: suggestions.recipes };
+				} catch {}
+			}
 		} else {
 			params.set('tab', value);
+			// Reload saved recipes when switching to Gespeichert
+			try {
+				const recipes = await loadRecipes({ status: 'approved' });
+				localData = { ...localData, recipes };
+			} catch {}
 		}
 		// Keep sort/filter params only for gespeichert
 		if (value === 'vorschlaege') {
