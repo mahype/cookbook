@@ -319,6 +319,16 @@
 		<!-- Vorschläge tab -->
 		<p class="text-warm-500 text-sm mb-4">{formatDate(localData.date)}</p>
 
+		{#if generating && (localData.suggestionRecipes ?? []).length > 0}
+			<div class="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-xl flex items-center gap-3">
+				<svg class="animate-spin w-5 h-5 text-orange-500 flex-shrink-0" fill="none" viewBox="0 0 24 24">
+					<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+					<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+				</svg>
+				<p class="text-sm text-orange-700 font-medium">{generateProgress}</p>
+			</div>
+		{/if}
+
 		{#if (localData.suggestionRecipes ?? []).length === 0}
 			{#if generating}
 				<div class="text-center py-16">
@@ -385,26 +395,6 @@
 						/>
 					</div>
 				{/each}
-			</div>
-			<div class="text-center py-6">
-				<button
-					onclick={handleGenerate}
-					disabled={generating}
-					class="inline-flex items-center gap-2 px-5 py-2.5 border-2 border-spice-500 text-spice-600 rounded-xl font-medium hover:bg-spice-50 transition-colors disabled:opacity-50"
-				>
-					{#if generating}
-						<svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-						</svg>
-						Generiere...
-					{:else}
-						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-						</svg>
-						Neue Rezepte
-					{/if}
-				</button>
 			</div>
 		{/if}
 	{:else}
@@ -577,10 +567,29 @@
 
 		<!-- Menu items (below FAB) -->
 		{#if fabOpen}
-			<div class="bg-white rounded-2xl shadow-lg border border-warm-200 overflow-hidden animate-fade-in-down min-w-[180px]">
+			<div class="bg-white rounded-2xl shadow-lg border border-warm-200 overflow-hidden animate-fade-in-down min-w-[200px]">
+				<button
+					onclick={() => { fabOpen = false; handleGenerate(); }}
+					disabled={generating}
+					class="w-full flex items-center gap-3 px-4 py-3 hover:bg-warm-50 transition-colors disabled:opacity-50"
+				>
+					<span class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+						{#if generating}
+							<svg class="w-4 h-4 text-orange-600 animate-spin" fill="none" viewBox="0 0 24 24">
+								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+							</svg>
+						{:else}
+							<svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+							</svg>
+						{/if}
+					</span>
+					<span class="text-sm font-medium text-warm-800">{generating ? 'Generiere...' : 'Rezepte generieren'}</span>
+				</button>
 				<a
 					href="/rezepte/neu"
-					class="flex items-center gap-3 px-4 py-3 hover:bg-warm-50 transition-colors"
+					class="flex items-center gap-3 px-4 py-3 hover:bg-warm-50 transition-colors border-t border-warm-100"
 				>
 					<span class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
 						<svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
