@@ -97,6 +97,18 @@ const IDB_NAME = 'cookbook-db';
 const IDB_STORE = 'sqlitedb';
 const IDB_KEY = 'database';
 
+// --- Storage Layer: Capacitor Preferences (native) or IndexedDB (web fallback) ---
+
+async function useCapPrefs(): Promise<boolean> {
+	try {
+		if (typeof window !== 'undefined' && (window as any).Capacitor) {
+			const { Preferences } = await import('@capacitor/preferences');
+			return !!Preferences;
+		}
+	} catch {}
+	return false;
+}
+
 function openIdb(): Promise<IDBDatabase> {
 	return new Promise((resolve, reject) => {
 		const req = indexedDB.open(IDB_NAME, 1);
@@ -109,6 +121,23 @@ function openIdb(): Promise<IDBDatabase> {
 }
 
 async function loadFromIdb(): Promise<Uint8Array | null> {
+	// Try Capacitor Preferences first (native, persistent)
+	if (await useCapPrefs()) {
+		try {
+			const { Preferences } = await import('@capacitor/preferences');
+			const { value } = await Preferences.get({ key: IDB_KEY });
+			if (value) {
+				const binary = atob(value);
+				const bytes = new Uint8Array(binary.length);
+				for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+				return bytes;
+			}
+		} catch (e) {
+			console.warn('Capacitor Preferences load failed, falling back to IDB:', e);
+		}
+	}
+
+	// Fallback: IndexedDB
 	const idb = await openIdb();
 	return new Promise((resolve, reject) => {
 		const tx = idb.transaction(IDB_STORE, 'readonly');
@@ -120,6 +149,20 @@ async function loadFromIdb(): Promise<Uint8Array | null> {
 }
 
 async function saveToIdb(data: Uint8Array): Promise<void> {
+	// Save to Capacitor Preferences (native UserDefaults/SharedPreferences)
+	if (await useCapPrefs()) {
+		try {
+			const { Preferences } = await import('@capacitor/preferences');
+			// Convert Uint8Array to base64
+			let binary = '';
+			for (let i = 0; i < data.length; i++) binary += String.fromCharCode(data[i]);
+			await Preferences.set({ key: IDB_KEY, value: btoa(binary) });
+		} catch (e) {
+			console.warn('Capacitor Preferences save failed:', e);
+		}
+	}
+
+	// Also save to IndexedDB as fallback
 	const idb = await openIdb();
 	return new Promise((resolve, reject) => {
 		const tx = idb.transaction(IDB_STORE, 'readwrite');
