@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { isCapacitor, loadPreferences } from '$lib/stores/data';
+	import { isCapacitor, loadPreferences, savePreference } from '$lib/stores/data';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -83,22 +83,22 @@
 		saving = true;
 		message = '';
 		try {
-			// Send only non-zero ratings
 			const prefs: Record<string, number> = {};
 			for (const [k, v] of Object.entries(ratings)) {
 				if (v > 0) prefs[k] = v;
 			}
-			const res = await fetch('/api/einstellungen', {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ cuisine_preferences: prefs })
-			});
-			if (res.ok) {
-				message = 'Gespeichert!';
-				setTimeout(() => (message = ''), 2000);
+			if (isCapacitor()) {
+				await savePreference('cuisinePreferences', JSON.stringify(prefs));
 			} else {
-				message = 'Fehler beim Speichern';
+				const res = await fetch('/api/einstellungen', {
+					method: 'PUT',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ cuisine_preferences: prefs })
+				});
+				if (!res.ok) { message = 'Fehler beim Speichern'; return; }
 			}
+			message = 'Gespeichert!';
+			setTimeout(() => (message = ''), 2000);
 		} catch {
 			message = 'Netzwerkfehler';
 		} finally {
@@ -110,17 +110,18 @@
 		savingNotes = true;
 		message = '';
 		try {
-			const res = await fetch('/api/einstellungen', {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ recipe_notes: recipeNotes })
-			});
-			if (res.ok) {
-				message = 'Gespeichert!';
-				setTimeout(() => (message = ''), 2000);
+			if (isCapacitor()) {
+				await savePreference('recipeNotes', recipeNotes);
 			} else {
-				message = 'Fehler beim Speichern';
+				const res = await fetch('/api/einstellungen', {
+					method: 'PUT',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ recipe_notes: recipeNotes })
+				});
+				if (!res.ok) { message = 'Fehler beim Speichern'; return; }
 			}
+			message = 'Gespeichert!';
+			setTimeout(() => (message = ''), 2000);
 		} catch {
 			message = 'Netzwerkfehler';
 		} finally {
@@ -130,11 +131,15 @@
 
 	async function saveServings(value: number) {
 		try {
-			await fetch('/api/einstellungen', {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ default_servings: value })
-			});
+			if (isCapacitor()) {
+				await savePreference('defaultServings', String(value));
+			} else {
+				await fetch('/api/einstellungen', {
+					method: 'PUT',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ default_servings: value })
+				});
+			}
 		} catch {}
 	}
 
@@ -184,19 +189,22 @@
 		if (!aiProviderId) return;
 		aiSaving = true;
 		try {
-			await fetch('/api/einstellungen', {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					ai_provider: {
-						id: aiProviderId,
-						name: providerList.find(p => p.id === aiProviderId)?.name ?? aiProviderId,
-						baseUrl: aiBaseUrl,
-						model: aiModel,
-						apiKey: aiApiKey
-					}
-				})
-			});
+			const aiProvider = {
+				id: aiProviderId,
+				name: providerList.find(p => p.id === aiProviderId)?.name ?? aiProviderId,
+				baseUrl: aiBaseUrl,
+				model: aiModel,
+				apiKey: aiApiKey
+			};
+			if (isCapacitor()) {
+				await savePreference('aiProvider', JSON.stringify(aiProvider));
+			} else {
+				await fetch('/api/einstellungen', {
+					method: 'PUT',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ ai_provider: aiProvider })
+				});
+			}
 			message = 'KI-Einstellungen gespeichert!';
 			setTimeout(() => (message = ''), 2000);
 		} catch {
@@ -210,24 +218,77 @@
 		aiTesting = true;
 		aiTestResult = null;
 		try {
-			const res = await fetch('/api/ai/test', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					provider: {
-						id: aiProviderId,
-						name: providerList.find(p => p.id === aiProviderId)?.name ?? '',
-						baseUrl: aiBaseUrl,
-						model: aiModel,
-						apiKey: aiApiKey
-					}
-				})
-			});
-			aiTestResult = await res.json();
+			if (isCapacitor()) {
+				aiTestResult = await testAIDirect();
+			} else {
+				const res = await fetch('/api/ai/test', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						provider: {
+							id: aiProviderId,
+							name: providerList.find(p => p.id === aiProviderId)?.name ?? '',
+							baseUrl: aiBaseUrl,
+							model: aiModel,
+							apiKey: aiApiKey
+						}
+					})
+				});
+				aiTestResult = await res.json();
+			}
 		} catch {
 			aiTestResult = { success: false, error: 'Netzwerkfehler' };
 		} finally {
 			aiTesting = false;
+		}
+	}
+
+	async function testAIDirect(): Promise<{ success: boolean; error?: string; model?: string }> {
+		if (!aiProviderId || !aiBaseUrl || !aiModel) {
+			return { success: false, error: 'Unvollständige Konfiguration' };
+		}
+		try {
+			if (aiProviderId === 'anthropic') {
+				const res = await fetch(`${aiBaseUrl}/messages`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'x-api-key': aiApiKey,
+						'anthropic-version': '2023-06-01'
+					},
+					body: JSON.stringify({
+						model: aiModel,
+						max_tokens: 32,
+						messages: [{ role: 'user', content: 'Antworte mit OK' }]
+					})
+				});
+				if (!res.ok) {
+					const err = await res.text();
+					return { success: false, error: `API-Fehler ${res.status}: ${err}` };
+				}
+				const data = await res.json();
+				return { success: true, model: data.model ?? aiModel };
+			} else {
+				const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+				if (aiApiKey) headers['Authorization'] = `Bearer ${aiApiKey}`;
+				const res = await fetch(`${aiBaseUrl}/chat/completions`, {
+					method: 'POST',
+					headers,
+					body: JSON.stringify({
+						model: aiModel,
+						max_tokens: 32,
+						messages: [{ role: 'user', content: 'Antworte mit OK' }]
+					})
+				});
+				if (!res.ok) {
+					const err = await res.text();
+					return { success: false, error: `API-Fehler ${res.status}: ${err}` };
+				}
+				const data = await res.json();
+				return { success: true, model: data.model ?? aiModel };
+			}
+		} catch (e) {
+			return { success: false, error: e instanceof Error ? e.message : 'Unbekannter Fehler' };
 		}
 	}
 </script>
