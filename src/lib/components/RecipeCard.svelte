@@ -205,15 +205,22 @@
 			? 'bg-white border-orange-200 hover:shadow-md'
 			: 'bg-white border-warm-100 hover:shadow-md'}"
 >
-	<a href="/rezepte/{recipe.id}" class="block">
-		{@render cardImage()}
-		{@render cardContent()}
-	</a>
+	{#if expandable}
+		<button class="block w-full text-left" onclick={() => expanded = !expanded}>
+			{@render cardImage()}
+			{@render cardContent()}
+		</button>
+	{:else}
+		<a href="/rezepte/{recipe.id}" class="block">
+			{@render cardImage()}
+			{@render cardContent()}
+		</a>
+	{/if}
 
 	{#if expandable}
 		<div class="border-t border-warm-100 flex">
 			<button
-				onclick={() => (expanded = !expanded)}
+				onclick={(e) => { e.preventDefault(); e.stopPropagation(); expanded = !expanded; }}
 				class="flex-1 flex items-center justify-center gap-1.5 py-3.5 min-h-[44px] text-sm font-semibold bg-orange-500 text-white hover:bg-orange-600 transition-colors {dismissable ? 'rounded-bl-none' : ''}"
 			>
 				<span>{expanded ? 'Zuklappen' : 'Details anzeigen'}</span>
