@@ -253,7 +253,7 @@
 				]);
 				prefs = await prefsRes.json();
 				const pantryData = await pantryRes.json();
-				pantryItemsList = pantryData.map((p: any) => p.name || p);
+				const pantryArr = Array.isArray(pantryData) ? pantryData : (pantryData.items ?? []); pantryItemsList = pantryArr.map((p: any) => typeof p === "string" ? p : (p.name || p));
 				const rawProv = prefs.aiProvider ?? prefs.ai_provider;
 				aiProviderConfig = typeof rawProv === 'string' ? JSON.parse(rawProv) : rawProv;
 			}
@@ -336,7 +336,7 @@
 				]);
 				prefs = await prefsRes.json();
 				const pantryData = await pantryRes.json();
-				pantryItemsList = pantryData.map((p: any) => p.name || p);
+				const pantryArr = Array.isArray(pantryData) ? pantryData : (pantryData.items ?? []); pantryItemsList = pantryArr.map((p: any) => typeof p === "string" ? p : (p.name || p));
 				const rawProvider = prefs.aiProvider ?? prefs.ai_provider;
 				aiProviderConfig =
 					typeof rawProvider === 'string'
