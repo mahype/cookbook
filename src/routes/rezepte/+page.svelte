@@ -254,7 +254,8 @@
 				prefs = await prefsRes.json();
 				const pantryData = await pantryRes.json();
 				pantryItemsList = pantryData.map((p: any) => p.name || p);
-				aiProviderConfig = typeof prefs.aiProvider === 'string' ? JSON.parse(prefs.aiProvider) : prefs.aiProvider;
+				const rawProv = prefs.aiProvider ?? prefs.ai_provider;
+				aiProviderConfig = typeof rawProv === 'string' ? JSON.parse(rawProv) : rawProv;
 			}
 
 			if (!aiProviderConfig?.apiKey) {
@@ -336,10 +337,11 @@
 				prefs = await prefsRes.json();
 				const pantryData = await pantryRes.json();
 				pantryItemsList = pantryData.map((p: any) => p.name || p);
+				const rawProvider = prefs.aiProvider ?? prefs.ai_provider;
 				aiProviderConfig =
-					typeof prefs.aiProvider === 'string'
-						? JSON.parse(prefs.aiProvider)
-						: prefs.aiProvider;
+					typeof rawProvider === 'string'
+						? JSON.parse(rawProvider)
+						: rawProvider;
 			}
 
 			if (!aiProviderConfig?.apiKey) {
@@ -351,7 +353,7 @@
 
 			generateProgress = `Rezept 1/${count} wird generiert...`;
 
-			const cuisinePrefsToUse = regionOverrides ?? prefs.cuisinePreferences ?? {};
+			const cuisinePrefsToUse = regionOverrides ?? prefs.cuisinePreferences ?? prefs.cuisine_preferences ?? {};
 
 			const recipes = await generateRecipes(
 				{
