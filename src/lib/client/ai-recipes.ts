@@ -151,11 +151,28 @@ JSON-Format:
   "difficulty": "Einfach",
   "servings": ${opts.servings},
   "pantry_based": ${isPantryRecipe},
+  "tags": ["fix & fertig", "gemüselastig"],
   "ingredients": [{"name": "Zutat", "amount": "200g", "store": "Discounter", "estimated_price": 1.50}],
   "steps": ["Schritt 1", "Schritt 2"]
 }
 
 Store-Werte: "Discounter", "Supermarkt", "Gemüsehändler", "Asia-Laden", "Theke"
+
+Tags (vergib passende aus dieser Liste):
+- "fix & fertig" (Zubereitungszeit ≤ 20 Min)
+- "blitzschnell" (Zubereitungszeit ≤ 10 Min)
+- "gemüselastig" (Hauptzutat ist Gemüse, mind. 3 verschiedene Gemüsesorten)
+- "proteinreich" (viel Eiweiß: Fleisch, Fisch, Hülsenfrüchte, Tofu)
+- "leichte Küche" (kalorienarm, frisch, unter 500 kcal)
+- "low carb" (wenig Kohlenhydrate, kein Reis/Nudeln/Kartoffeln)
+- "kindertauglich" (mild, nicht zu exotisch, bei Kindern beliebt)
+- "vegetarisch" (kein Fleisch, kein Fisch)
+- "vegan" (komplett pflanzlich)
+- "meal prep" (gut vorzubereiten, hält sich im Kühlschrank)
+- "one pot" (alles in einem Topf/Pfanne)
+- "günstig" (Gesamtkosten unter 6€)
+- "besonderer Anlass" (aufwändiger, besonders lecker, Wow-Effekt)
+
 Antworte NUR mit dem JSON-Objekt, kein anderer Text.`;
 
 		try {

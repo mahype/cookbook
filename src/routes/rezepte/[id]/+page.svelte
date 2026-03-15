@@ -125,6 +125,25 @@
 		Theke: 'bg-amber-100 text-amber-700'
 	};
 
+	function tagColorDetail(tag: string): string {
+		const colors: Record<string, string> = {
+			'fix & fertig': 'bg-sky-100 text-sky-700',
+			'blitzschnell': 'bg-sky-200 text-sky-800',
+			'gemüselastig': 'bg-emerald-100 text-emerald-700',
+			'proteinreich': 'bg-rose-100 text-rose-700',
+			'leichte Küche': 'bg-lime-100 text-lime-700',
+			'low carb': 'bg-violet-100 text-violet-700',
+			'kindertauglich': 'bg-amber-100 text-amber-700',
+			'vegetarisch': 'bg-green-100 text-green-700',
+			'vegan': 'bg-green-200 text-green-800',
+			'meal prep': 'bg-indigo-100 text-indigo-700',
+			'one pot': 'bg-orange-100 text-orange-700',
+			'günstig': 'bg-teal-100 text-teal-700',
+			'besonderer Anlass': 'bg-fuchsia-100 text-fuchsia-700'
+		};
+		return colors[tag] || 'bg-warm-100 text-warm-600';
+	}
+
 	const cuisineEmojis: Record<string, string> = {
 		Deutsch: '🇩🇪',
 		Asiatisch: '🥢',
@@ -325,7 +344,17 @@
 		<!-- Info Card -->
 		<div class="bg-white rounded-2xl p-5 shadow-sm border border-warm-100 mb-4">
 			<h1 class="text-xl font-bold text-warm-900 mb-2">{recipe.name}</h1>
-			<p class="text-warm-500 text-sm mb-4">{recipe.description}</p>
+			<p class="text-warm-500 text-sm mb-3">{recipe.description}</p>
+
+			{#if recipe.shopping_tags?.length > 0}
+				<div class="flex flex-wrap gap-1.5 mb-3">
+					{#each recipe.shopping_tags as tag}
+						<span class="text-[11px] font-semibold px-2.5 py-1 rounded-full {tagColorDetail(tag)}">
+							{tag}
+						</span>
+					{/each}
+				</div>
+			{/if}
 
 			<div class="flex flex-wrap gap-2 mb-4">
 				<span class="text-xs px-3 py-1.5 rounded-full bg-warm-100 text-warm-700 font-medium">

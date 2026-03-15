@@ -312,7 +312,7 @@
 						image_url: '',
 						ingredients: r.ingredients,
 						steps: r.steps,
-						shopping_tags: [],
+						shopping_tags: r.tags ?? [],
 						status: 'vorschlag',
 						pantry_based: r.pantry_based ? 1 : 0,
 						servings: r.servings
@@ -697,7 +697,7 @@
 {#if showGenerateDialog}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
-		class="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center"
+		class="fixed inset-0 bg-black/40 z-[60] flex items-end sm:items-center justify-center"
 		onclick={() => showGenerateDialog = false}
 		onkeydown={(e) => e.key === 'Escape' && (showGenerateDialog = false)}
 	>

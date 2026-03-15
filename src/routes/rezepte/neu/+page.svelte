@@ -124,6 +124,7 @@ Gib das Rezept als JSON-Objekt zurück:
   "difficulty": "Einfach",
   "servings": 4,
   "pantry_based": false,
+  "tags": ["fix & fertig", "gemüselastig"],
   "ingredients": [{"name": "Zutat", "amount": "200g", "store": "Supermarkt", "estimated_price": 1.50}],
   "steps": ["Schritt 1", "Schritt 2"]
 }
@@ -134,6 +135,7 @@ Regeln:
 - cost_estimate = Summe aller Zutaten-Preise
 - prep_time in Minuten
 - Schritte auf Deutsch, klar und knapp
+- Tags aus dieser Liste vergeben: "fix & fertig" (≤20 Min), "blitzschnell" (≤10 Min), "gemüselastig", "proteinreich", "leichte Küche" (kalorienarm), "low carb", "kindertauglich", "vegetarisch", "vegan", "meal prep", "one pot", "günstig" (unter 6€), "besonderer Anlass"
 - Antworte NUR mit dem JSON-Objekt`;
 
 			let content: string;
@@ -182,7 +184,7 @@ Regeln:
 					image_url: imageUrl,
 					ingredients: recipe.ingredients,
 					steps: recipe.steps,
-					shopping_tags: [],
+					shopping_tags: recipe.tags ?? [],
 					status: 'approved',
 					pantry_based: recipe.pantry_based ? 1 : 0,
 					servings: recipe.servings,

@@ -31,7 +31,7 @@
 
 	let detailsBtn: HTMLElement;
 	let dismissBtn: HTMLElement;
-	let debugTapped = $state(false);
+	
 
 	onMount(() => {
 		if (detailsBtn) {
@@ -43,7 +43,6 @@
 				e.preventDefault();
 				e.stopPropagation();
 				// DEBUG: mark as tapped permanently
-				debugTapped = true;
 				expanded = !expanded;
 			};
 			detailsBtn.addEventListener('touchend', handler, { passive: false });
@@ -96,6 +95,25 @@
 		} finally {
 			approving = false;
 		}
+	}
+
+	function tagColor(tag: string): string {
+		const colors: Record<string, string> = {
+			'fix & fertig': 'bg-sky-100 text-sky-700',
+			'blitzschnell': 'bg-sky-200 text-sky-800',
+			'gemüselastig': 'bg-emerald-100 text-emerald-700',
+			'proteinreich': 'bg-rose-100 text-rose-700',
+			'leichte Küche': 'bg-lime-100 text-lime-700',
+			'low carb': 'bg-violet-100 text-violet-700',
+			'kindertauglich': 'bg-amber-100 text-amber-700',
+			'vegetarisch': 'bg-green-100 text-green-700',
+			'vegan': 'bg-green-200 text-green-800',
+			'meal prep': 'bg-indigo-100 text-indigo-700',
+			'one pot': 'bg-orange-100 text-orange-700',
+			'günstig': 'bg-teal-100 text-teal-700',
+			'besonderer Anlass': 'bg-fuchsia-100 text-fuchsia-700'
+		};
+		return colors[tag] || 'bg-warm-100 text-warm-600';
 	}
 
 	const cuisineColors: Record<string, string> = {
@@ -215,7 +233,16 @@
 		<div class="flex items-start justify-between gap-2 mb-2">
 			<h3 class="font-semibold text-warm-900 text-base leading-tight">{recipe.name}</h3>
 		</div>
-		<p class="text-warm-500 text-sm mb-3 line-clamp-2">{recipe.description}</p>
+		<p class="text-warm-500 text-sm mb-2 line-clamp-2">{recipe.description}</p>
+		{#if recipe.shopping_tags?.length > 0}
+			<div class="flex flex-wrap gap-1 mb-2">
+				{#each recipe.shopping_tags as tag}
+					<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full {tagColor(tag)}">
+						{tag}
+					</span>
+				{/each}
+			</div>
+		{/if}
 		<div class="flex flex-wrap gap-1.5">
 			<span class="text-xs px-2 py-0.5 rounded-full {cuisineColors[recipe.cuisine] || 'bg-warm-100 text-warm-700'}">
 				{recipe.cuisine}
@@ -238,10 +265,10 @@
 			bind:this={detailsBtn}
 			role="button"
 			tabindex="0"
-			class="flex-1 flex items-center justify-center gap-1.5 py-3.5 min-h-[44px] text-sm font-semibold text-white active:bg-orange-700 cursor-pointer select-none {debugTapped ? 'bg-green-600' : 'bg-orange-500'}"
+			class="flex-1 flex items-center justify-center gap-1.5 py-3.5 min-h-[44px] text-sm font-semibold text-white bg-orange-500 active:bg-orange-700 cursor-pointer select-none"
 			style="touch-action: manipulation; -webkit-user-select: none; -webkit-tap-highlight-color: rgba(0,0,0,0.1);"
 		>
-			<span>{expanded ? 'Zuklappen' : (debugTapped ? 'TAPPED!' : 'Details anzeigen')}</span>
+			<span>{expanded ? 'Zuklappen' : 'Details anzeigen'}</span>
 			<svg
 				class="w-4 h-4 transition-transform duration-200 {expanded ? 'rotate-180' : ''}"
 				fill="none"
