@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import RecipeCard from '$lib/components/RecipeCard.svelte';
 	import TabToggle from '$lib/components/TabToggle.svelte';
+	import { goto } from '$app/navigation';
 	import { isCapacitor, loadRecipes, loadDailySuggestions, loadPantryNames, getDistinctCuisines, getDistinctStores } from '$lib/stores/data';
 	import { generateRecipes } from '$lib/client/ai-recipes';
 	import { findOrGenerateImage } from '$lib/client/ai-images';
@@ -311,6 +312,7 @@
 
 	function startGenerate() {
 		showGenerateDialog = false;
+		activeTab = 'vorschlaege';
 		regionsLoaded = true; // Remember user changes for next time
 		handleGenerate(generateCount, generateRegions);
 	}
@@ -370,7 +372,22 @@
 								? `${recipe.name} ✓ — Rezept ${current + 1}/${total} wird generiert...`
 								: `${recipe.name} ✓`;
 
-							// Save and show immediately
+							// Show in UI immediately with a temp ID
+							const tempId = `temp-${Date.now()}-${current}`;
+							const newRecipe = {
+								...recipe,
+								id: tempId,
+								image_url: '',
+								shopping_tags: recipe.tags ?? [],
+								status: 'vorschlag' as const,
+								pantry_based: recipe.pantry_based ? 1 : 0,
+							};
+							localData = {
+								...localData,
+								suggestionRecipes: [newRecipe, ...(localData.suggestionRecipes ?? [])]
+							};
+
+							// Save to DB and update with real ID
 							try {
 								if (isCapacitor()) {
 									const db = await import('$lib/client/db');
@@ -392,6 +409,12 @@
 									});
 									await db.saveDailySuggestions(today, [id]);
 									recipe.id = id;
+									localData = {
+										...localData,
+										suggestionRecipes: (localData.suggestionRecipes ?? []).map(r =>
+											r.id === tempId ? { ...r, id } : r
+										)
+									};
 								} else {
 									const res = await fetch('/api/vorschlaege/neu', {
 										method: 'POST',
@@ -400,23 +423,19 @@
 									});
 									if (res.ok) {
 										const data = await res.json();
-										if (data.ids?.[0]) recipe.id = data.ids[0];
+										if (data.ids?.[0]) {
+											recipe.id = data.ids[0];
+											localData = {
+												...localData,
+												suggestionRecipes: (localData.suggestionRecipes ?? []).map(r =>
+													r.id === tempId ? { ...r, id: data.ids[0] } : r
+												)
+											};
+										}
 									}
 								}
-								// Add to visible list immediately
-								const newRecipe = {
-									...recipe,
-									image_url: '',
-									shopping_tags: recipe.tags ?? [],
-									status: 'vorschlag' as const,
-									pantry_based: recipe.pantry_based ? 1 : 0,
-								};
-								localData = {
-									...localData,
-									suggestionRecipes: [newRecipe, ...(localData.suggestionRecipes ?? [])]
-								};
 							} catch (e) {
-								console.warn('Failed to save recipe immediately:', e);
+								console.warn('Failed to save recipe:', e);
 							}
 						} else {
 							generateProgress = `Rezept ${current}/${total} wird generiert...`;

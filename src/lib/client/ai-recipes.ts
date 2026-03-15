@@ -13,7 +13,7 @@ export interface GenerateOptions {
 	recipeNotes: string;
 	servings: number;
 	healthConditions?: string[];
-	onProgress?: (current: number, total: number, recipe?: any) => void;
+	onProgress?: (current: number, total: number, recipe?: any) => void | Promise<void>;
 }
 
 // Region ID → cuisine examples for AI prompt
@@ -122,7 +122,11 @@ export async function generateRecipes(
 	for (let i = 0; i < opts.count; i++) {
 		const isPantryRecipe = i < opts.pantryBased && opts.pantryItems.length > 0;
 
-		opts.onProgress?.(i + 1, opts.count);
+		// Only show "generating..." for the first recipe;
+		// subsequent progress is shown via the success callback of the previous recipe
+		if (i === 0) {
+			await opts.onProgress?.(1, opts.count);
+		}
 
 		const pantryInstruction = isPantryRecipe
 			? `Dieses Rezept MUSS möglichst viele dieser Vorräte verwenden: ${pantryList}. Setze pantry_based: true.`
@@ -180,10 +184,13 @@ Antworte NUR mit dem JSON-Objekt, kein anderer Text.`;
 			const recipe = parseRecipeJSON(content);
 			recipes.push(recipe);
 			previousNames.push(recipe.name);
-			opts.onProgress?.(i + 1, opts.count, recipe);
+			await opts.onProgress?.(i + 1, opts.count, recipe);
 		} catch (e: any) {
 			console.warn(`Rezept ${i + 1} fehlgeschlagen:`, e.message);
-			// Continue with remaining recipes
+			// Update progress for the next recipe after failure
+			if (i + 1 < opts.count) {
+				await opts.onProgress?.(i + 2, opts.count);
+			}
 		}
 	}
 

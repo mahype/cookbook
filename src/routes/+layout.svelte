@@ -100,7 +100,6 @@
 	<div class="fixed inset-0 z-[200] bg-orange-500 flex items-center justify-center transition-opacity duration-400 {splashFading ? 'opacity-0' : 'opacity-100'}">
 		<div class="flex flex-col items-center gap-4">
 			<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="w-28 h-28 drop-shadow-lg">
-				<rect width="512" height="512" rx="112" fill="white" opacity="0.2"/>
 				<path d="M136 240 h240 v20 c0 80 -40 140 -120 150 c-80 -10 -120 -70 -120 -150 z" fill="white"/>
 				<rect x="120" y="228" width="272" height="24" rx="12" fill="white"/>
 				<rect x="96" y="236" width="40" height="12" rx="6" fill="white"/>
