@@ -486,7 +486,21 @@ export async function approveRecipes(ids: number[]): Promise<number> {
 export async function approveRecipe(id: number): Promise<void> {
 	const d = await getDb();
 	d.run(`UPDATE recipes SET status = 'approved' WHERE id = ? AND status = 'vorschlag'`, [id]);
-	scheduleSave();
+
+	// Also remove from daily_suggestions recipe_ids list
+	const suggestions = rowsToObjects<{ id: number; recipe_ids: string }>(
+		d,
+		'SELECT id, recipe_ids FROM daily_suggestions'
+	);
+	for (const s of suggestions) {
+		const ids: number[] = JSON.parse(s.recipe_ids);
+		const filtered = ids.filter(rid => rid !== id);
+		if (filtered.length !== ids.length) {
+			d.run('UPDATE daily_suggestions SET recipe_ids = ? WHERE id = ?', [JSON.stringify(filtered), s.id]);
+		}
+	}
+
+	await forceSave();
 }
 
 // ============================================================
