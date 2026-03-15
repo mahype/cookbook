@@ -178,12 +178,15 @@
 			</div>
 		{:else}
 			<div
-				class="h-36 flex items-center justify-center"
+				class="h-36 flex flex-col items-center justify-center gap-2"
 				style="background: {placeholderGradient(recipe.name)}"
 			>
-				<svg class="w-16 h-16 text-white/70" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+				<svg class="w-12 h-12 text-white/70" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" d={cuisineIcons[recipe.cuisine] || cuisineIcons.default} />
 				</svg>
+				{#if recipe.status === 'vorschlag'}
+					<span class="text-white/50 text-xs font-medium">Bild wird gesucht...</span>
+				{/if}
 			</div>
 		{/if}
 		{#if recipe.pantry_based}

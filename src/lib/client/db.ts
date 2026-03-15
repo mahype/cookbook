@@ -902,26 +902,27 @@ export async function getDailySuggestions(
 
 export async function saveDailySuggestions(date: string, recipeIds: number[]): Promise<void> {
 	const d = await getDb();
-	// Clean up old suggestions and their unapproved recipes
-	const oldSuggestions = rowsToObjects<{ recipe_ids: string }>(
-		d,
-		'SELECT recipe_ids FROM daily_suggestions'
-	);
-	const oldIds = oldSuggestions.flatMap((s) => JSON.parse(s.recipe_ids) as number[]);
-	if (oldIds.length > 0) {
-		const placeholders = oldIds.map(() => '?').join(',');
-		d.run(
-			`DELETE FROM recipes WHERE id IN (${placeholders}) AND status = 'vorschlag'`,
-			oldIds
-		);
-	}
-	d.run('DELETE FROM daily_suggestions');
 
-	// Save new suggestion
-	d.run('INSERT INTO daily_suggestions (date, recipe_ids) VALUES (?, ?)', [
-		date,
-		JSON.stringify(recipeIds)
-	]);
+	// Append new recipe IDs to existing suggestions (don't delete old ones!)
+	const existing = rowsToObjects<{ id: number; recipe_ids: string }>(
+		d,
+		'SELECT id, recipe_ids FROM daily_suggestions LIMIT 1'
+	);
+
+	if (existing.length > 0) {
+		const oldIds: number[] = JSON.parse(existing[0].recipe_ids);
+		const mergedIds = [...oldIds, ...recipeIds];
+		d.run('UPDATE daily_suggestions SET recipe_ids = ?, date = ? WHERE id = ?', [
+			JSON.stringify(mergedIds),
+			date,
+			existing[0].id
+		]);
+	} else {
+		d.run('INSERT INTO daily_suggestions (date, recipe_ids) VALUES (?, ?)', [
+			date,
+			JSON.stringify(recipeIds)
+		]);
+	}
 	scheduleSave();
 }
 

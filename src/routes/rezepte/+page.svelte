@@ -361,14 +361,63 @@
 					pantryBased: Math.min(2, pantryItemsList.length > 0 ? 2 : 0),
 					pantryItems: pantryItemsList,
 					cuisinePrefs: cuisinePrefsToUse,
-					recipeNotes: prefs.recipeNotes ?? '',
-					servings: prefs.defaultServings ?? 2,
+					recipeNotes: prefs.recipeNotes ?? prefs.recipe_notes ?? '',
+					servings: prefs.defaultServings ?? prefs.default_servings ?? 2,
 					healthConditions: prefs.healthConditions ?? [],
-					onProgress: (current, total, recipe) => {
+					onProgress: async (current, total, recipe) => {
 						if (recipe) {
 							generateProgress = current < total
 								? `${recipe.name} ✓ — Rezept ${current + 1}/${total} wird generiert...`
-								: `${recipe.name} ✓ — Speichere...`;
+								: `${recipe.name} ✓`;
+
+							// Save and show immediately
+							try {
+								if (isCapacitor()) {
+									const db = await import('$lib/client/db');
+									const today = new Date().toISOString().split('T')[0];
+									const id = await db.insertRecipe({
+										name: recipe.name,
+										description: recipe.description,
+										cuisine: recipe.cuisine,
+										cost_estimate: recipe.cost_estimate,
+										prep_time: recipe.prep_time,
+										difficulty: recipe.difficulty,
+										image_url: '',
+										ingredients: recipe.ingredients,
+										steps: recipe.steps,
+										shopping_tags: recipe.tags ?? [],
+										status: 'vorschlag',
+										pantry_based: recipe.pantry_based ? 1 : 0,
+										servings: recipe.servings
+									});
+									await db.saveDailySuggestions(today, [id]);
+									recipe.id = id;
+								} else {
+									const res = await fetch('/api/vorschlaege/neu', {
+										method: 'POST',
+										headers: { 'Content-Type': 'application/json' },
+										body: JSON.stringify({ recipes: [recipe] })
+									});
+									if (res.ok) {
+										const data = await res.json();
+										if (data.ids?.[0]) recipe.id = data.ids[0];
+									}
+								}
+								// Add to visible list immediately
+								const newRecipe = {
+									...recipe,
+									image_url: '',
+									shopping_tags: recipe.tags ?? [],
+									status: 'vorschlag' as const,
+									pantry_based: recipe.pantry_based ? 1 : 0,
+								};
+								localData = {
+									...localData,
+									suggestionRecipes: [...(localData.suggestionRecipes ?? []), newRecipe]
+								};
+							} catch (e) {
+								console.warn('Failed to save recipe immediately:', e);
+							}
 						} else {
 							generateProgress = `Rezept ${current}/${total} wird generiert...`;
 						}
@@ -376,54 +425,6 @@
 				},
 				aiProviderConfig
 			);
-
-			generateProgress = `${recipes.length} Rezept${recipes.length !== 1 ? 'e' : ''} generiert! Speichere...`;
-
-			// Save recipes
-			if (isCapacitor()) {
-				const db = await import('$lib/client/db');
-				const today = new Date().toISOString().split('T')[0];
-				const recipeIds: number[] = [];
-				for (const r of recipes) {
-					const id = await db.insertRecipe({
-						name: r.name,
-						description: r.description,
-						cuisine: r.cuisine,
-						cost_estimate: r.cost_estimate,
-						prep_time: r.prep_time,
-						difficulty: r.difficulty,
-						image_url: '',
-						ingredients: r.ingredients,
-						steps: r.steps,
-						shopping_tags: r.tags ?? [],
-						status: 'vorschlag',
-						pantry_based: r.pantry_based ? 1 : 0,
-						servings: r.servings
-					});
-					recipeIds.push(id);
-				}
-				await db.saveDailySuggestions(today, recipeIds);
-			} else {
-				await fetch('/api/vorschlaege/neu', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ recipes })
-				});
-			}
-
-			// Reload suggestions
-			if (isCapacitor()) {
-				const sug = await loadDailySuggestions();
-				const pn = await loadPantryNames();
-				localData = {
-					...localData,
-					suggestionRecipes: sug.recipes,
-					date: sug.date,
-					pantryNames: pn
-				};
-			} else {
-				window.location.reload();
-			}
 
 			// Find images in background (Pexels first, then DALL-E fallback)
 			let pexelsKey = '';
