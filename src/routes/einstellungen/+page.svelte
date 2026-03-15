@@ -221,6 +221,25 @@
 	let unsplashApiKey = $state('');
 	let openaiImageKey = $state('');
 	let imageSaveState = $state<'idle' | 'loading' | 'success' | 'error'>('idle');
+
+	async function saveImageKeys() {
+		imageSaveState = 'loading';
+		try {
+			if (isCapacitor()) {
+				await savePreference('pexelsApiKey', pexelsApiKey);
+				await savePreference('unsplashApiKey', unsplashApiKey);
+				if (aiProviderId !== 'openai') {
+					await savePreference('openaiImageKey', openaiImageKey);
+				}
+				const { forceSave } = await import('$lib/client/db');
+				await forceSave();
+			}
+			imageSaveState = 'success';
+		} catch {
+			imageSaveState = 'error';
+		}
+		resetAfterDelay(s => imageSaveState = s);
+	}
 	let showPexelsKey = $state(false);
 	let showUnsplashKey = $state(false);
 	let showImageKey = $state(false);
@@ -247,6 +266,12 @@
 		aiModel = p.defaultModel;
 		aiApiKey = id === aiProviderId ? aiApiKey : '';
 		aiTestResult = null;
+		saveAI();
+	}
+
+	function aiFieldChanged() {
+		// Debounced auto-save on field change
+		saveAI();
 	}
 
 	async function saveAI() {
@@ -456,6 +481,7 @@
 								bind:value={aiApiKey}
 								placeholder="sk-..."
 								autocomplete="off"
+								onblur={aiFieldChanged}
 								class="w-full rounded-xl border border-warm-200 bg-warm-50 px-4 py-2.5 text-sm text-warm-800 pr-10 focus:border-spice-400 focus:ring-2 focus:ring-spice-200 focus:outline-none"
 							/>
 							<button
@@ -486,6 +512,7 @@
 							bind:value={aiModel}
 							placeholder="z.B. gpt-4o-mini"
 							onfocus={() => showModelDropdown = true}
+							onblur={() => { showModelDropdown = false; aiFieldChanged(); }}
 							class="w-full rounded-xl border border-warm-200 bg-warm-50 px-4 py-2.5 text-sm text-warm-800 focus:border-spice-400 focus:ring-2 focus:ring-spice-200 focus:outline-none"
 						/>
 						<button
@@ -524,6 +551,7 @@
 							type="text"
 							bind:value={aiBaseUrl}
 							placeholder="https://api.openai.com/v1"
+							onblur={aiFieldChanged}
 							class="w-full rounded-xl border border-warm-200 bg-warm-50 px-4 py-2.5 text-sm text-warm-800 focus:border-spice-400 focus:ring-2 focus:ring-spice-200 focus:outline-none"
 						/>
 					</div>
@@ -546,21 +574,13 @@
 							Verbindung testen
 						{/if}
 					</button>
-					<button
-						onclick={saveAI}
-						disabled={aiSaveState === 'loading'}
-						class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white min-w-[120px] flex items-center justify-center transition-colors disabled:opacity-50 {aiSaveState === 'success' ? 'bg-green-500' : aiSaveState === 'error' ? 'bg-red-500' : 'bg-spice-500 hover:bg-spice-600'}"
-					>
-						{#if aiSaveState === 'loading'}
-							<svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-						{:else if aiSaveState === 'success'}
-							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-						{:else if aiSaveState === 'error'}
-							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
-						{:else}
-							Speichern
-						{/if}
-					</button>
+					<!-- Auto-save indicator -->
+					{#if aiSaveState === 'success'}
+						<span class="text-xs text-green-600 flex items-center gap-1">
+							<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+							Gespeichert
+						</span>
+					{/if}
 				</div>
 
 				<!-- Test result -->
@@ -595,6 +615,7 @@
 						<input
 							type={showPexelsKey ? 'text' : 'password'}
 							bind:value={pexelsApiKey}
+							onblur={saveImageKeys}
 							placeholder="Pexels API Key"
 							class="w-full px-4 py-3 pr-12 bg-warm-50 border border-warm-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-400"
 						/>
@@ -624,6 +645,7 @@
 						<input
 							type={showUnsplashKey ? 'text' : 'password'}
 							bind:value={unsplashApiKey}
+							onblur={saveImageKeys}
 							placeholder="Unsplash Access Key"
 							class="w-full px-4 py-3 pr-12 bg-warm-50 border border-warm-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-400"
 						/>
@@ -651,6 +673,7 @@
 							<input
 								type={showImageKey ? 'text' : 'password'}
 								bind:value={openaiImageKey}
+								onblur={saveImageKeys}
 								placeholder="sk-..."
 								class="w-full px-4 py-3 pr-12 bg-warm-50 border border-warm-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-400"
 							/>
@@ -668,41 +691,12 @@
 					</div>
 				{/if}
 
-				<button
-					onclick={async () => {
-						imageSaveState = 'loading';
-						try {
-							if (isCapacitor()) {
-								await savePreference('pexelsApiKey', pexelsApiKey);
-								await savePreference('unsplashApiKey', unsplashApiKey);
-								if (aiProviderId !== 'openai') {
-									await savePreference('openaiImageKey', openaiImageKey);
-								}
-								const { forceSave } = await import('$lib/client/db');
-								await forceSave();
-							}
-							imageSaveState = 'success';
-						} catch {
-							imageSaveState = 'error';
-						}
-						resetAfterDelay(s => imageSaveState = s);
-					}}
-					class="w-full py-3 rounded-xl font-semibold text-base transition-colors {
-						imageSaveState === 'success' ? 'bg-green-500 text-white' :
-						imageSaveState === 'error' ? 'bg-red-500 text-white' :
-						'bg-orange-500 text-white hover:bg-orange-600'
-					}"
-				>
-					{#if imageSaveState === 'loading'}
-						<svg class="w-5 h-5 mx-auto animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-					{:else if imageSaveState === 'success'}
-						<svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-					{:else if imageSaveState === 'error'}
-						<svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
-					{:else}
-						Speichern
-					{/if}
-				</button>
+				{#if imageSaveState === 'success'}
+					<p class="text-xs text-green-600 flex items-center gap-1 mt-2">
+						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+						Gespeichert
+					</p>
+				{/if}
 			</div>
 		</div>
 	</div>
@@ -755,23 +749,15 @@
 				bind:value={recipeNotes}
 				placeholder="z.B. Gerne viel Gemüse, wenig Fleisch, eher leichte Gerichte..."
 				rows="4"
+				onblur={saveNotes}
 				class="w-full rounded-xl border border-warm-200 bg-warm-50 px-4 py-3 text-sm text-warm-800 placeholder-warm-400 focus:border-spice-400 focus:ring-2 focus:ring-spice-200 focus:outline-none resize-y"
 			></textarea>
-			<button
-				onclick={saveNotes}
-				disabled={notesState === 'loading'}
-				class="mt-3 w-full py-2.5 rounded-xl text-sm font-semibold text-white min-h-[42px] flex items-center justify-center transition-colors disabled:opacity-50 {notesState === 'success' ? 'bg-green-500' : notesState === 'error' ? 'bg-red-500' : 'bg-spice-500 hover:bg-spice-600 active:bg-spice-700'}"
-			>
-				{#if notesState === 'loading'}
-					<svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-				{:else if notesState === 'success'}
-					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-				{:else if notesState === 'error'}
-					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
-				{:else}
-					Wünsche speichern
-				{/if}
-			</button>
+			{#if notesState === 'success'}
+				<p class="mt-2 text-xs text-green-600 flex items-center gap-1">
+					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+					Gespeichert
+				</p>
+			{/if}
 		</div>
 	</div>
 
