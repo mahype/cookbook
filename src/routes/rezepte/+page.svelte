@@ -178,6 +178,10 @@
 
 	// --- Generate Dialog ---
 	let showGenerateDialog = $state(false);
+	let showWishDialog = $state(false);
+	let wishText = $state('');
+	let wishLoading = $state(false);
+	let wishError = $state('');
 	let generateCount = $state(5);
 	const cuisineRegions = [
 		{ id: 'nordeuropaeisch', label: 'Nordeuropäisch', emoji: '🇩🇪' },
@@ -227,6 +231,81 @@
 		fabOpen = false;
 		loadRegionsFromPrefs();
 		showGenerateDialog = true;
+	}
+
+	async function submitWish() {
+		if (!wishText.trim()) return;
+		wishLoading = true;
+		wishError = '';
+
+		try {
+			let aiProviderConfig: any, pantryItemsList: string[], prefs: any;
+			if (isCapacitor()) {
+				const { loadPreferences, loadPantryNames: lpn } = await import('$lib/stores/data');
+				const prefsData = await loadPreferences();
+				prefs = prefsData;
+				pantryItemsList = await lpn();
+				aiProviderConfig = prefsData.aiProvider;
+			} else {
+				const [prefsRes, pantryRes] = await Promise.all([
+					fetch('/api/einstellungen'),
+					fetch('/api/vorrat')
+				]);
+				prefs = await prefsRes.json();
+				const pantryData = await pantryRes.json();
+				pantryItemsList = pantryData.map((p: any) => p.name || p);
+				aiProviderConfig = typeof prefs.aiProvider === 'string' ? JSON.parse(prefs.aiProvider) : prefs.aiProvider;
+			}
+
+			if (!aiProviderConfig?.apiKey) {
+				wishError = 'Bitte zuerst KI-Einstellungen konfigurieren.';
+				return;
+			}
+
+			const recipes = await generateRecipes(
+				{
+					count: 1,
+					pantryBased: 0,
+					pantryItems: pantryItemsList,
+					cuisinePrefs: {},
+					recipeNotes: wishText.trim(),
+					servings: prefs.defaultServings ?? 2,
+					healthConditions: prefs.healthConditions ?? [],
+				},
+				aiProviderConfig
+			);
+
+			if (recipes.length === 0) throw new Error('Kein Rezept generiert');
+
+			const recipe = recipes[0];
+			if (isCapacitor()) {
+				const db = await import('$lib/client/db');
+				const id = await db.insertRecipe({
+					name: recipe.name,
+					description: recipe.description,
+					cuisine: recipe.cuisine,
+					cost_estimate: recipe.cost_estimate,
+					prep_time: recipe.prep_time,
+					difficulty: recipe.difficulty,
+					image_url: '',
+					ingredients: recipe.ingredients,
+					steps: recipe.steps,
+					shopping_tags: recipe.tags ?? [],
+					status: 'approved',
+					pantry_based: recipe.pantry_based ? 1 : 0,
+					servings: recipe.servings,
+				});
+				await db.forceSave();
+
+				showWishDialog = false;
+				wishText = '';
+				goto(`/rezepte/${id}`);
+			}
+		} catch (e: any) {
+			wishError = e.message || 'Fehler';
+		} finally {
+			wishLoading = false;
+		}
 	}
 
 	function startGenerate() {
@@ -675,6 +754,18 @@
 					</span>
 					<span class="text-sm font-medium text-warm-800">Rezept hinzufügen</span>
 				</a>
+				<button
+					onclick={() => { fabOpen = false; showWishDialog = true; }}
+					disabled={generating}
+					class="w-full flex items-center gap-3 px-4 py-3 hover:bg-warm-50 transition-colors border-t border-warm-100 disabled:opacity-50"
+				>
+					<span class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+						<svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456Z" />
+						</svg>
+					</span>
+					<span class="text-sm font-medium text-warm-800">Gericht wünschen</span>
+				</button>
 				<a
 					href="/planen"
 					class="flex items-center gap-3 px-4 py-3 hover:bg-warm-50 transition-colors border-t border-warm-100"
@@ -767,6 +858,66 @@
 					class="flex-1 py-3 rounded-xl bg-orange-500 text-white font-semibold text-sm min-h-[48px] disabled:opacity-40"
 				>
 					{generateCount} Rezepte los!
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<!-- Wish Dialog -->
+{#if showWishDialog}
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div
+		class="fixed inset-0 bg-black/40 z-[60] flex items-end sm:items-center justify-center"
+		onclick={() => !wishLoading && (showWishDialog = false)}
+		onkeydown={(e) => e.key === 'Escape' && !wishLoading && (showWishDialog = false)}
+	>
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div
+			class="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-md shadow-xl"
+			style="padding-bottom: calc(env(safe-area-inset-bottom) + 16px);"
+			onclick={(e) => e.stopPropagation()}
+		>
+			<div class="px-5 pt-5 pb-2">
+				<h2 class="text-lg font-bold text-warm-900">Gericht wünschen</h2>
+				<p class="text-sm text-warm-400 mt-1">Beschreibe was du essen möchtest — die KI erstellt ein passendes Rezept.</p>
+			</div>
+
+			<div class="px-5 pb-4">
+				<textarea
+					bind:value={wishText}
+					placeholder="z.B. Ein cremiges Risotto mit Pilzen und Parmesan, nicht zu aufwändig..."
+					rows="3"
+					class="w-full px-4 py-3 rounded-xl border border-warm-200 bg-warm-50 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-400"
+					onkeydown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), submitWish())}
+				></textarea>
+				{#if wishError}
+					<p class="text-sm text-red-600 mt-2">{wishError}</p>
+				{/if}
+			</div>
+
+			<div class="px-5 pb-2 flex gap-3">
+				<button
+					onclick={() => showWishDialog = false}
+					disabled={wishLoading}
+					class="flex-1 py-3 rounded-xl border border-warm-200 text-warm-600 font-semibold text-sm min-h-[48px] disabled:opacity-40"
+				>
+					Abbrechen
+				</button>
+				<button
+					onclick={submitWish}
+					disabled={wishLoading || !wishText.trim()}
+					class="flex-1 py-3 rounded-xl bg-orange-500 text-white font-semibold text-sm min-h-[48px] disabled:opacity-40 flex items-center justify-center gap-2"
+				>
+					{#if wishLoading}
+						<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+						</svg>
+						Wird erstellt...
+					{:else}
+						Rezept erstellen
+					{/if}
 				</button>
 			</div>
 		</div>
