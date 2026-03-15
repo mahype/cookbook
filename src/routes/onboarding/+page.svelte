@@ -239,7 +239,7 @@
 				await forceSave();
 			}
 
-			goto('/rezepte');
+			goto('/rezepte?generate=5');
 		} catch {
 			saving = false;
 		}

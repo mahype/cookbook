@@ -33,6 +33,19 @@
 			};
 			pantryNames = pantryNms;
 		}
+
+		// Auto-generate after onboarding wizard
+		const params = new URLSearchParams(window.location.search);
+		const autoGenerate = params.get('generate');
+		if (autoGenerate) {
+			// Clean URL
+			const url = new URL(window.location.href);
+			url.searchParams.delete('generate');
+			history.replaceState({}, '', url.pathname + url.search);
+			// Start generation
+			const count = parseInt(autoGenerate) || 5;
+			handleGenerate(count);
+		}
 	});
 
 	let activeTab = $state(localData.tab ?? 'vorschlaege');
@@ -163,7 +176,66 @@
 	let generateError = $state('');
 	let generateProgress = $state('');
 
-	async function handleGenerate() {
+	// --- Generate Dialog ---
+	let showGenerateDialog = $state(false);
+	let generateCount = $state(5);
+	const cuisineRegions = [
+		{ id: 'nordeuropaeisch', label: 'Nordeuropäisch', emoji: '🇩🇪' },
+		{ id: 'suedeuropaeisch', label: 'Südeuropäisch', emoji: '🇮🇹' },
+		{ id: 'osteuropaeisch', label: 'Osteuropäisch', emoji: '🇵🇱' },
+		{ id: 'asiatisch', label: 'Asiatisch', emoji: '🥢' },
+		{ id: 'orientalisch', label: 'Orient & Afrika', emoji: '🧆' },
+		{ id: 'nordamerikanisch', label: 'Nordamerikanisch', emoji: '🇺🇸' },
+		{ id: 'suedamerikanisch', label: 'Südamerikanisch', emoji: '🇧🇷' },
+		{ id: 'fusion', label: 'Fusion & Street Food', emoji: '🌮' },
+	];
+	// Will be loaded from prefs, then remembered across generations
+	let generateRegions = $state<Record<string, boolean>>(
+		Object.fromEntries(cuisineRegions.map(r => [r.id, true]))
+	);
+	let regionsLoaded = false;
+
+	async function loadRegionsFromPrefs() {
+		if (regionsLoaded) return; // Keep last user changes
+		try {
+			if (isCapacitor()) {
+				const { loadPreferences } = await import('$lib/stores/data');
+				const prefs = await loadPreferences();
+				const cp = prefs.cuisinePreferences ?? {};
+				if (Object.keys(cp).length > 0) {
+					generateRegions = Object.fromEntries(
+						cuisineRegions.map(r => [r.id, cp[r.id] !== undefined ? !!cp[r.id] : true])
+					);
+				}
+			} else {
+				const res = await fetch('/api/einstellungen');
+				if (res.ok) {
+					const prefs = await res.json();
+					const cp = prefs.cuisinePreferences ?? prefs.cuisine_preferences ?? {};
+					if (Object.keys(cp).length > 0) {
+						generateRegions = Object.fromEntries(
+							cuisineRegions.map(r => [r.id, cp[r.id] !== undefined ? !!cp[r.id] : true])
+						);
+					}
+				}
+			}
+		} catch {}
+		regionsLoaded = true;
+	}
+
+	function openGenerateDialog() {
+		fabOpen = false;
+		loadRegionsFromPrefs();
+		showGenerateDialog = true;
+	}
+
+	function startGenerate() {
+		showGenerateDialog = false;
+		regionsLoaded = true; // Remember user changes for next time
+		handleGenerate(generateCount, generateRegions);
+	}
+
+	async function handleGenerate(count: number = 5, regionOverrides?: Record<string, boolean>) {
 		generating = true;
 		generateError = '';
 		generateProgress = 'Lade Einstellungen...';
@@ -196,14 +268,16 @@
 				return;
 			}
 
-			generateProgress = 'Rezept 1/5 wird generiert...';
+			generateProgress = `Rezept 1/${count} wird generiert...`;
+
+			const cuisinePrefsToUse = regionOverrides ?? prefs.cuisinePreferences ?? {};
 
 			const recipes = await generateRecipes(
 				{
-					count: 5,
+					count,
 					pantryBased: Math.min(2, pantryItemsList.length > 0 ? 2 : 0),
 					pantryItems: pantryItemsList,
-					cuisinePrefs: prefs.cuisinePreferences ?? {},
+					cuisinePrefs: cuisinePrefsToUse,
 					recipeNotes: prefs.recipeNotes ?? '',
 					servings: prefs.defaultServings ?? 2,
 					healthConditions: prefs.healthConditions ?? [],
@@ -220,7 +294,7 @@
 				aiProviderConfig
 			);
 
-			generateProgress = `${recipes.length} Rezepte generiert! Speichere...`;
+			generateProgress = `${recipes.length} Rezept${recipes.length !== 1 ? 'e' : ''} generiert! Speichere...`;
 
 			// Save recipes
 			if (isCapacitor()) {
@@ -352,7 +426,7 @@
 						<p class="text-red-500 text-sm mt-2">{generateError}</p>
 					{/if}
 					<button
-						onclick={handleGenerate}
+						onclick={openGenerateDialog}
 						class="inline-flex items-center gap-2 mt-6 px-6 py-3.5 min-h-[48px] bg-spice-500 text-white rounded-xl font-medium hover:bg-spice-600 transition-colors"
 					>
 						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -569,7 +643,7 @@
 		{#if fabOpen}
 			<div class="bg-white rounded-2xl shadow-lg border border-warm-200 overflow-hidden animate-fade-in-down min-w-[200px]">
 				<button
-					onclick={() => { fabOpen = false; handleGenerate(); }}
+					onclick={openGenerateDialog}
 					disabled={generating}
 					class="w-full flex items-center gap-3 px-4 py-3 hover:bg-warm-50 transition-colors disabled:opacity-50"
 				>
@@ -618,6 +692,86 @@
 			</div>
 		{/if}
 	</div>
+
+<!-- Generate Dialog -->
+{#if showGenerateDialog}
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div
+		class="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center"
+		onclick={() => showGenerateDialog = false}
+		onkeydown={(e) => e.key === 'Escape' && (showGenerateDialog = false)}
+	>
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div
+			class="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto shadow-xl"
+			style="padding-bottom: calc(env(safe-area-inset-bottom) + 16px);"
+			onclick={(e) => e.stopPropagation()}
+		>
+			<div class="px-5 pt-5 pb-3">
+				<h2 class="text-lg font-bold text-warm-900">Rezepte generieren</h2>
+			</div>
+
+			<!-- Count selector -->
+			<div class="px-5 pb-4">
+				<label class="text-sm font-medium text-warm-700 mb-2 block">Anzahl</label>
+				<div class="flex gap-2">
+					{#each [3, 5, 7, 10] as n}
+						<button
+							onclick={() => generateCount = n}
+							class="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors min-h-[44px] {generateCount === n ? 'bg-orange-500 text-white' : 'bg-warm-100 text-warm-700'}"
+						>
+							{n}
+						</button>
+					{/each}
+				</div>
+			</div>
+
+			<!-- Region toggles -->
+			<div class="px-5 pb-4">
+				<label class="text-sm font-medium text-warm-700 mb-2 block">Küchen-Regionen</label>
+				<div class="grid grid-cols-2 gap-2">
+					{#each cuisineRegions as region}
+						<button
+							onclick={() => generateRegions = { ...generateRegions, [region.id]: !generateRegions[region.id] }}
+							class="flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left transition-colors min-h-[44px] {generateRegions[region.id] ? 'bg-orange-50 border-orange-300' : 'bg-warm-50 border-warm-200 opacity-50'}"
+						>
+							<span class="text-base">{region.emoji}</span>
+							<span class="text-xs font-medium text-warm-800 leading-tight">{region.label}</span>
+						</button>
+					{/each}
+				</div>
+				<div class="flex gap-2 mt-2">
+					<button
+						onclick={() => generateRegions = Object.fromEntries(cuisineRegions.map(r => [r.id, true]))}
+						class="text-xs text-orange-600 font-medium"
+					>Alle an</button>
+					<span class="text-xs text-warm-300">|</span>
+					<button
+						onclick={() => generateRegions = Object.fromEntries(cuisineRegions.map(r => [r.id, false]))}
+						class="text-xs text-warm-400 font-medium"
+					>Alle aus</button>
+				</div>
+			</div>
+
+			<!-- Actions -->
+			<div class="px-5 pb-2 flex gap-3">
+				<button
+					onclick={() => showGenerateDialog = false}
+					class="flex-1 py-3 rounded-xl border border-warm-200 text-warm-600 font-semibold text-sm min-h-[48px]"
+				>
+					Abbrechen
+				</button>
+				<button
+					onclick={startGenerate}
+					disabled={!Object.values(generateRegions).some(v => v)}
+					class="flex-1 py-3 rounded-xl bg-orange-500 text-white font-semibold text-sm min-h-[48px] disabled:opacity-40"
+				>
+					{generateCount} Rezepte los!
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
 
 <style>
 	@keyframes fade-in-down {
