@@ -30,7 +30,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		if (recipeIds.length > 0) {
 			const placeholders = recipeIds.map(() => '?').join(',');
 			const rows = db
-				.prepare(`SELECT * FROM recipes WHERE id IN (${placeholders}) ORDER BY pantry_based DESC`)
+				.prepare(`SELECT * FROM recipes WHERE id IN (${placeholders}) AND status = 'vorschlag' ORDER BY id DESC`)
 				.all(...recipeIds) as RecipeRow[];
 			suggestionRecipes = rows.map(parseRecipe);
 		}

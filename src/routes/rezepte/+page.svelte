@@ -413,7 +413,7 @@
 								};
 								localData = {
 									...localData,
-									suggestionRecipes: [...(localData.suggestionRecipes ?? []), newRecipe]
+									suggestionRecipes: [newRecipe, ...(localData.suggestionRecipes ?? [])]
 								};
 							} catch (e) {
 								console.warn('Failed to save recipe immediately:', e);
