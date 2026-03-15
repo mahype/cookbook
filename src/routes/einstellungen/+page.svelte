@@ -72,7 +72,7 @@
 	onMount(async () => {
 		if (isCapacitor()) {
 			const prefs = await loadPreferences();
-			ratings = { ...prefs.cuisinePreferences };
+			regionToggles = migratePreferences(prefs.cuisinePreferences ?? {});
 			recipeNotes = prefs.recipeNotes;
 			defaultServings = prefs.defaultServings;
 			healthConditions = prefs.healthConditions ?? [];
@@ -101,47 +101,32 @@
 		}
 	});
 
-	const cuisineCategories = [
-		{
-			name: 'Asiatisch',
-			cuisines: ['Chinesisch', 'Japanisch', 'Koreanisch', 'Thailändisch', 'Vietnamesisch', 'Indisch', 'Indonesisch', 'Malaysisch', 'Philippinisch', 'Sri-Lankisch']
-		},
-		{
-			name: 'Europäisch',
-			cuisines: ['Deutsch', 'Italienisch', 'Französisch', 'Griechisch', 'Spanisch', 'Portugiesisch', 'Britisch', 'Skandinavisch', 'Osteuropäisch', 'Balkan']
-		},
-		{
-			name: 'Orient & Afrika',
-			cuisines: ['Arabisch/Orientalisch', 'Türkisch', 'Persisch', 'Libanesisch', 'Marokkanisch', 'Äthiopisch', 'Westafrikanisch']
-		},
-		{
-			name: 'Amerika',
-			cuisines: ['Amerikanisch', 'Mexikanisch', 'Brasilianisch', 'Peruanisch', 'Karibisch', 'Cajun/Kreolisch']
-		},
-		{
-			name: 'Sonstige',
-			cuisines: ['Australisch', 'Fusion', 'Vegetarisch/Vegan', 'Street Food']
-		}
+	const cuisineRegions = [
+		{ id: 'nordeuropaeisch', label: 'Nordeuropäisch', emoji: '🇩🇪', examples: 'Deutsch, Britisch, Skandinavisch' },
+		{ id: 'suedeuropaeisch', label: 'Südeuropäisch', emoji: '🇮🇹', examples: 'Italienisch, Griechisch, Spanisch, Französisch' },
+		{ id: 'osteuropaeisch', label: 'Osteuropäisch', emoji: '🇵🇱', examples: 'Polnisch, Ungarisch, Balkan, Russisch' },
+		{ id: 'asiatisch', label: 'Asiatisch', emoji: '🥢', examples: 'Japanisch, Thai, Vietnamesisch, Koreanisch, Indisch, Chinesisch' },
+		{ id: 'orientalisch', label: 'Orientalisch & Afrikanisch', emoji: '🧆', examples: 'Türkisch, Arabisch, Persisch, Marokkanisch, Äthiopisch' },
+		{ id: 'nordamerikanisch', label: 'Nordamerikanisch', emoji: '🇺🇸', examples: 'US-Amerikanisch, Mexikanisch, Cajun' },
+		{ id: 'suedamerikanisch', label: 'Südamerikanisch & Karibisch', emoji: '🇧🇷', examples: 'Brasilianisch, Peruanisch, Karibisch' },
+		{ id: 'fusion', label: 'Fusion & Street Food', emoji: '🌮', examples: 'Crossover, Street Food, Modern' },
 	];
 
-	let ratings = $state<Record<string, number>>({ ...(data.cuisinePreferences ?? {}) });
-
-	// Track which categories are expanded — all collapsed by default
-	let expanded = $state<Set<string>>(new Set());
-
-	function toggleCategory(name: string) {
-		const next = new Set(expanded);
-		if (next.has(name)) {
-			next.delete(name);
-		} else {
-			next.add(name);
+	// Migrate old detailed ratings to new region toggles
+	function migratePreferences(old: Record<string, number>): Record<string, boolean> {
+		if (!old || Object.keys(old).length === 0) {
+			// Default: all on
+			return Object.fromEntries(cuisineRegions.map(r => [r.id, true]));
 		}
-		expanded = next;
+		// Check if already in new format (keys are region ids)
+		if (Object.keys(old).some(k => cuisineRegions.find(r => r.id === k))) {
+			return Object.fromEntries(cuisineRegions.map(r => [r.id, !!old[r.id]]));
+		}
+		// Old format: has individual cuisine names with star ratings — enable all regions
+		return Object.fromEntries(cuisineRegions.map(r => [r.id, true]));
 	}
 
-	function activeCount(cuisines: string[]): number {
-		return cuisines.filter(c => (ratings[c] ?? 0) > 0).length;
-	}
+	let regionToggles = $state<Record<string, boolean>>(migratePreferences(data.cuisinePreferences ?? {}));
 
 	let defaultServings = $state(data.defaultServings ?? 2);
 	let recipeNotes = $state(data.recipeNotes ?? '');
@@ -153,31 +138,18 @@
 		setTimeout(() => setter('idle'), 1500);
 	}
 
-	function setRating(cuisine: string, star: number) {
-		const current = ratings[cuisine] ?? 0;
-		if (current === star) {
-			// Tap same star again → deselect
-			ratings = { ...ratings, [cuisine]: 0 };
-		} else {
-			ratings = { ...ratings, [cuisine]: star };
-		}
-		save();
-	}
-
-	async function save() {
+	async function toggleRegion(id: string) {
+		regionToggles = { ...regionToggles, [id]: !regionToggles[id] };
+		// Auto-save
 		cuisineState = 'loading';
 		try {
-			const prefs: Record<string, number> = {};
-			for (const [k, v] of Object.entries(ratings)) {
-				if (v > 0) prefs[k] = v;
-			}
 			if (isCapacitor()) {
-				await savePreference('cuisinePreferences', JSON.stringify(prefs));
+				await savePreference('cuisinePreferences', JSON.stringify(regionToggles));
 			} else {
 				const res = await fetch('/api/einstellungen', {
 					method: 'PUT',
 					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ cuisine_preferences: prefs })
+					body: JSON.stringify({ cuisine_preferences: regionToggles })
 				});
 				if (!res.ok) { cuisineState = 'error'; resetAfterDelay(s => cuisineState = s); return; }
 			}
@@ -228,10 +200,6 @@
 			defaultServings = next;
 			saveServings(next);
 		}
-	}
-
-	function totalActive(): number {
-		return Object.values(ratings).filter(v => v > 0).length;
 	}
 
 	// --- AI Provider ---
@@ -742,69 +710,51 @@
 	<div class="bg-white rounded-2xl shadow-sm border border-warm-100 overflow-hidden">
 		<div class="px-5 pt-4 pb-2">
 			<h2 class="text-sm font-semibold text-warm-500 uppercase tracking-wide">
-				Küchen-Präferenzen
+				Küchen-Regionen
 			</h2>
-			<p class="text-xs text-warm-400 mt-1">★ = ab und zu · ★★ = gerne · ★★★ = Favorit</p>
+			<p class="text-xs text-warm-400 mt-1">Aktivierte Regionen werden zufällig bei der Rezeptgenerierung berücksichtigt</p>
 		</div>
-		{#each cuisineCategories as category}
-			{@const isExpanded = expanded.has(category.name)}
-			{@const count = activeCount(category.cuisines)}
-			<div class="border-t border-warm-100">
+		<div class="px-5 pb-4 space-y-2">
+			{#each cuisineRegions as region}
 				<button
-					onclick={() => toggleCategory(category.name)}
-					class="w-full flex items-center justify-between px-5 py-3.5 hover:bg-warm-50 transition-colors active:bg-warm-100"
+					onclick={() => toggleRegion(region.id)}
+					class="w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors min-h-[48px] {regionToggles[region.id] ? 'bg-orange-50 border-orange-300' : 'bg-warm-50 border-warm-200 opacity-60'}"
 				>
-					<div class="flex items-center gap-2">
-						<span class="text-base font-semibold text-warm-800">{category.name}</span>
-						{#if count > 0}
-							<span class="text-xs font-medium text-spice-600 bg-spice-50 rounded-full px-2 py-0.5">{count} aktiv</span>
+					<span class="text-xl flex-shrink-0">{region.emoji}</span>
+					<div class="flex-1 text-left">
+						<span class="text-sm font-semibold text-warm-800">{region.label}</span>
+						<p class="text-xs text-warm-400">{region.examples}</p>
+					</div>
+					<div class="flex-shrink-0">
+						{#if regionToggles[region.id]}
+							<div class="w-10 h-6 bg-orange-500 rounded-full flex items-center justify-end px-0.5">
+								<div class="w-5 h-5 bg-white rounded-full shadow"></div>
+							</div>
+						{:else}
+							<div class="w-10 h-6 bg-warm-300 rounded-full flex items-center justify-start px-0.5">
+								<div class="w-5 h-5 bg-white rounded-full shadow"></div>
+							</div>
 						{/if}
 					</div>
-					<svg
-						class="w-5 h-5 text-warm-400 transition-transform duration-200 {isExpanded ? 'rotate-90' : ''}"
-						fill="none" stroke="currentColor" viewBox="0 0 24 24"
-					>
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-					</svg>
 				</button>
-				{#if isExpanded}
-					<ul>
-						{#each category.cuisines as cuisine}
-							{@const rating = ratings[cuisine] ?? 0}
-							<li>
-								<div class="flex items-center justify-between pl-10 pr-5 py-3 min-h-[48px]">
-									<span class="text-sm font-medium text-warm-700">{cuisine}</span>
-									<div class="flex gap-1">
-										{#each [1, 2, 3] as star}
-											<button
-												onclick={() => setRating(cuisine, star)}
-												class="p-0.5 transition-colors"
-												aria-label="{cuisine} {star} Stern{star > 1 ? 'e' : ''}"
-											>
-												<svg class="w-7 h-7 {rating >= star ? 'text-orange-500' : 'text-warm-300'}" viewBox="0 0 24 24" fill={rating >= star ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="1.5">
-													<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-												</svg>
-											</button>
-										{/each}
-									</div>
-								</div>
-							</li>
-						{/each}
-					</ul>
-				{/if}
+			{/each}
+		</div>
+		{#if cuisineState === 'success'}
+			<div class="px-5 pb-3">
+				<p class="text-xs text-green-600 text-center">Gespeichert!</p>
 			</div>
-		{/each}
+		{/if}
 	</div>
 
 	<div class="bg-white rounded-2xl shadow-sm border border-warm-100 overflow-hidden mt-6">
 		<h2 class="px-5 pt-4 pb-2 text-sm font-semibold text-warm-500 uppercase tracking-wide">
-			<svg class="w-4 h-4 inline-block align-text-bottom text-warm-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg> Deine Wünsche & Präferenzen
+			Deine Wünsche
 		</h2>
 		<div class="px-5 pb-4">
 			<textarea
 				bind:value={recipeNotes}
-				placeholder="z.B. Ich mag gerne gesunde Gerichte, viel Gemüse, asiatische Küche..."
-				rows="5"
+				placeholder="z.B. Gerne viel Gemüse, wenig Fleisch, eher leichte Gerichte..."
+				rows="4"
 				class="w-full rounded-xl border border-warm-200 bg-warm-50 px-4 py-3 text-sm text-warm-800 placeholder-warm-400 focus:border-spice-400 focus:ring-2 focus:ring-spice-200 focus:outline-none resize-y"
 			></textarea>
 			<button
@@ -825,10 +775,7 @@
 		</div>
 	</div>
 
-	<p class="text-xs text-warm-400 text-center mt-4 mb-6">
-		{totalActive()} {totalActive() === 1 ? 'Küche' : 'Küchen'} ausgewählt
-		{#if cuisineState === 'loading'}· Speichert...{/if}
-	</p>
+	<div class="h-6"></div>
 
 	<!-- Danger Zone -->
 	<div class="space-y-3 mb-10">

@@ -9,12 +9,24 @@ export interface GenerateOptions {
 	count: number;
 	pantryBased: number;
 	pantryItems: string[];
-	cuisinePrefs: Record<string, number>;
+	cuisinePrefs: Record<string, boolean>;
 	recipeNotes: string;
 	servings: number;
 	healthConditions?: string[];
 	onProgress?: (current: number, total: number, recipe?: any) => void;
 }
+
+// Region ID → cuisine examples for AI prompt
+const regionCuisines: Record<string, string> = {
+	nordeuropaeisch: 'Deutsch, Skandinavisch, Britisch, Niederländisch',
+	suedeuropaeisch: 'Italienisch, Griechisch, Spanisch, Französisch, Portugiesisch',
+	osteuropaeisch: 'Polnisch, Ungarisch, Russisch, Balkan, Tschechisch',
+	asiatisch: 'Japanisch, Thailändisch, Vietnamesisch, Koreanisch, Chinesisch, Indisch, Indonesisch',
+	orientalisch: 'Türkisch, Arabisch, Persisch, Libanesisch, Marokkanisch, Äthiopisch',
+	nordamerikanisch: 'US-Amerikanisch, Mexikanisch, Cajun/Kreolisch',
+	suedamerikanisch: 'Brasilianisch, Peruanisch, Argentinisch, Karibisch',
+	fusion: 'Fusion, Street Food, Modern, Crossover',
+};
 
 // Health condition labels for AI prompt
 const healthLabels: Record<string, string> = {
@@ -87,11 +99,14 @@ export async function generateRecipes(
 ): Promise<any[]> {
 	const pantryList = opts.pantryItems.length > 0 ? opts.pantryItems.join(', ') : 'keine Vorräte';
 
-	const favCuisines =
-		Object.entries(opts.cuisinePrefs)
-			.filter(([, v]) => v >= 2)
-			.map(([k]) => k)
-			.join(', ') || 'international';
+	// Build enabled regions list
+	const enabledRegions = Object.entries(opts.cuisinePrefs)
+		.filter(([, v]) => v)
+		.map(([k]) => regionCuisines[k] ?? k)
+		.flat();
+	const cuisineInstruction = enabledRegions.length > 0
+		? `Erlaubte Küchen: ${enabledRegions.join(', ')}. Wähle ZUFÄLLIG aus diesen Küchen — variiere stark und wiederhole keine Küche.`
+		: 'Wähle aus ALLEN internationalen Küchen zufällig.';
 
 	const healthConstraints = (opts.healthConditions ?? [])
 		.map(id => healthLabels[id])
@@ -119,9 +134,11 @@ export async function generateRecipes(
 
 		const prompt = `Generiere EIN Rezept als JSON-Objekt.
 
+WICHTIG: Sei KREATIV und ÜBERRASCHEND. Wähle ein Gericht das der User wahrscheinlich noch nicht oft gekocht hat. Keine Standardgerichte wie Spaghetti Bolognese oder Schnitzel.
+
 ${pantryInstruction}
-Bevorzugte Küchen: ${favCuisines}
-Wünsche: ${opts.recipeNotes || 'Abwechslung'}
+${cuisineInstruction}
+Wünsche: ${opts.recipeNotes || 'Abwechslung und Überraschung'}
 Portionen: ${opts.servings}${healthSection}${avoidSection}
 
 JSON-Format:

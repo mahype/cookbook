@@ -29,35 +29,25 @@
 	let approved = $state(recipe.status === 'approved');
 	let approving = $state(false);
 
-	// Use vanilla JS event listeners for iOS WKWebView compatibility
 	let detailsBtn: HTMLElement;
 	let dismissBtn: HTMLElement;
+	let debugTapped = $state(false);
 
 	onMount(() => {
 		if (detailsBtn) {
-			const handler = (e: Event) => {
-				e.preventDefault();
-				e.stopPropagation();
-				expanded = !expanded;
-			};
-			detailsBtn.addEventListener('touchend', handler, { passive: false });
-			detailsBtn.addEventListener('click', handler);
-
-			// Debounce: prevent double fire
 			let lastFire = 0;
-			const debouncedHandler = (e: Event) => {
+			const handler = (e: Event) => {
 				const now = Date.now();
 				if (now - lastFire < 400) { e.preventDefault(); return; }
 				lastFire = now;
 				e.preventDefault();
 				e.stopPropagation();
+				// DEBUG: mark as tapped permanently
+				debugTapped = true;
 				expanded = !expanded;
 			};
-			// Replace with debounced version
-			detailsBtn.removeEventListener('touchend', handler);
-			detailsBtn.removeEventListener('click', handler);
-			detailsBtn.addEventListener('touchend', debouncedHandler, { passive: false });
-			detailsBtn.addEventListener('click', debouncedHandler);
+			detailsBtn.addEventListener('touchend', handler, { passive: false });
+			detailsBtn.addEventListener('click', handler);
 		}
 
 		if (dismissBtn && onDismiss) {
@@ -248,10 +238,10 @@
 			bind:this={detailsBtn}
 			role="button"
 			tabindex="0"
-			class="flex-1 flex items-center justify-center gap-1.5 py-3.5 min-h-[44px] text-sm font-semibold bg-orange-500 text-white active:bg-orange-700 cursor-pointer select-none"
+			class="flex-1 flex items-center justify-center gap-1.5 py-3.5 min-h-[44px] text-sm font-semibold text-white active:bg-orange-700 cursor-pointer select-none {debugTapped ? 'bg-green-600' : 'bg-orange-500'}"
 			style="touch-action: manipulation; -webkit-user-select: none; -webkit-tap-highlight-color: rgba(0,0,0,0.1);"
 		>
-			<span>{expanded ? 'Zuklappen' : 'Details anzeigen'}</span>
+			<span>{expanded ? 'Zuklappen' : (debugTapped ? 'TAPPED!' : 'Details anzeigen')}</span>
 			<svg
 				class="w-4 h-4 transition-transform duration-200 {expanded ? 'rotate-180' : ''}"
 				fill="none"
