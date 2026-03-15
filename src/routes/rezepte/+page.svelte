@@ -344,6 +344,8 @@
 
 			if (!aiProviderConfig?.apiKey) {
 				generateError = 'Bitte zuerst KI-Einstellungen konfigurieren (Einstellungen → KI)';
+				generating = false;
+				generateProgress = '';
 				return;
 			}
 
@@ -455,7 +457,8 @@
 				}
 			}
 		} catch (e) {
-			generateError = e instanceof Error ? e.message : 'Fehler bei der Rezept-Generierung';
+			console.error('Generate error:', e);
+			generateError = e instanceof Error ? e.message : String(e);
 		} finally {
 			generating = false;
 			generateProgress = '';
@@ -480,6 +483,12 @@
 					<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
 				</svg>
 				<p class="text-sm text-orange-700 font-medium">{generateProgress}</p>
+			</div>
+		{/if}
+
+		{#if generateError}
+			<div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl">
+				<p class="text-sm text-red-700 font-medium">{generateError}</p>
 			</div>
 		{/if}
 
